@@ -1,25 +1,31 @@
-export type SajdaInfo = { globalAyahNumber: number; surahNumber: number; ayahInSurah: number; obligatory: boolean };
+import type { TranslationKeys } from './translations';
+import type { Madhhab } from '@/lib/prayerTimes';
 
-// Global ayah numbers and positions per the Uthmani mushaf, matching the
-// canonical 15 sajdah list (source: api.alquran.cloud /v1/sajda/quran-uthmani).
-export const sajdaLocations: SajdaInfo[] = [
-  { globalAyahNumber: 1160, surahNumber: 7, ayahInSurah: 206, obligatory: false },
-  { globalAyahNumber: 1722, surahNumber: 13, ayahInSurah: 15, obligatory: false },
-  { globalAyahNumber: 1951, surahNumber: 16, ayahInSurah: 50, obligatory: false },
-  { globalAyahNumber: 2138, surahNumber: 17, ayahInSurah: 109, obligatory: false },
-  { globalAyahNumber: 2308, surahNumber: 19, ayahInSurah: 58, obligatory: false },
-  { globalAyahNumber: 2613, surahNumber: 22, ayahInSurah: 18, obligatory: false },
-  { globalAyahNumber: 2672, surahNumber: 22, ayahInSurah: 77, obligatory: false },
-  { globalAyahNumber: 2915, surahNumber: 25, ayahInSurah: 60, obligatory: false },
-  { globalAyahNumber: 3185, surahNumber: 27, ayahInSurah: 26, obligatory: false },
-  { globalAyahNumber: 3518, surahNumber: 32, ayahInSurah: 15, obligatory: true },
-  { globalAyahNumber: 3994, surahNumber: 38, ayahInSurah: 24, obligatory: false },
-  { globalAyahNumber: 4256, surahNumber: 41, ayahInSurah: 38, obligatory: true },
-  { globalAyahNumber: 4846, surahNumber: 53, ayahInSurah: 62, obligatory: true },
-  { globalAyahNumber: 5905, surahNumber: 84, ayahInSurah: 21, obligatory: false },
-  { globalAyahNumber: 6125, surahNumber: 96, ayahInSurah: 19, obligatory: true },
-];
+// The 15 places of prostration of recitation, by global ayah number in the Uthmani mushaf.
+// Hanafis prostrate at 14 of them (not the second one in al-Hajj, 22:77); Shafi'is at 14 as well
+// (not Sad 38:24, where they regard it as a prostration of gratitude outside prayer).
+const SAJDA_AYAHS: Record<number, { surah: number; ayah: number }> = {
+  1160: { surah: 7, ayah: 206 },
+  1722: { surah: 13, ayah: 15 },
+  1951: { surah: 16, ayah: 50 },
+  2138: { surah: 17, ayah: 109 },
+  2308: { surah: 19, ayah: 58 },
+  2613: { surah: 22, ayah: 18 },
+  2672: { surah: 22, ayah: 77 },
+  2915: { surah: 25, ayah: 60 },
+  3185: { surah: 27, ayah: 26 },
+  3518: { surah: 32, ayah: 15 },
+  3994: { surah: 38, ayah: 24 },
+  4256: { surah: 41, ayah: 38 },
+  4846: { surah: 53, ayah: 62 },
+  5905: { surah: 84, ayah: 21 },
+  6125: { surah: 96, ayah: 19 },
+};
 
-export const sajdaByGlobalNumber: Record<number, SajdaInfo> = Object.fromEntries(
-  sajdaLocations.map((s) => [s.globalAyahNumber, s]),
-);
+export function sajdaLabel(globalAyahNumber: number, madhab: Madhhab, t: TranslationKeys): string | null {
+  const place = SAJDA_AYAHS[globalAyahNumber];
+  if (!place) return null;
+  if (place.surah === 22 && place.ayah === 77) return madhab === 'hanafi' ? t.quranSajdaNotHanafi : t.quranSajdaShafi;
+  if (place.surah === 38) return madhab === 'hanafi' ? t.quranSajdaHanafi : t.quranSajdaSadShafi;
+  return madhab === 'hanafi' ? t.quranSajdaHanafi : t.quranSajdaShafi;
+}

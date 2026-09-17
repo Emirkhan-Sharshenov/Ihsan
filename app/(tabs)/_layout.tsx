@@ -1,20 +1,21 @@
 import { Tabs } from 'expo-router';
 import { BookOpen, Compass, CircleUserRound, HandHeart, House, RotateCcw } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/hooks/useLanguage';
+import { tabColors } from '@/constants/theme';
 
 export default function TabsLayout() {
   const { t } = useLanguage();
-  const accent = '#A9F06B';
-  const muted = '#95A4B8';
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: accent,
-        tabBarInactiveTintColor: muted,
-        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: tabColors.active,
+        tabBarInactiveTintColor: tabColors.inactive,
+        tabBarStyle: [styles.tabBar, { height: 64 + insets.bottom, paddingBottom: 8 + insets.bottom }],
         tabBarLabelStyle: styles.label,
         tabBarHideOnKeyboard: true,
       }}
@@ -31,11 +32,9 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#10243C',
-    borderTopColor: '#24415F',
-    height: 74,
+    backgroundColor: tabColors.barBg,
+    borderTopColor: tabColors.barBorder,
     paddingTop: 8,
-    paddingBottom: 10,
   },
   label: {
     fontSize: 10,

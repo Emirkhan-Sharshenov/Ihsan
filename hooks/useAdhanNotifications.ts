@@ -1,32 +1,36 @@
 import { useEffect, useRef } from 'react';
-import { AppState, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import type { PrayerTime } from '@/data/prayerTimes';
+import { FARD_KEYS, formatTime, type PrayerDay } from '@/lib/prayerTimes';
 import type { TranslationKeys } from '@/data/translations';
+import { prayerName } from '@/data/translations';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
-const ID_PREFIX = 'adhan-';
-const CHANNEL_ID = 'adhan';
-const REMINDER_MINUTES_BEFORE = 15;
-
-async function ensureAndroidChannel() {
-  if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: 'Adhan',
-    importance: Notifications.AndroidImportance.HIGH,
-    sound: 'default',
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
   });
 }
 
-async function cancelAdhanNotifications() {
+const ID_PREFIX = 'prayer-';
+const CHANNEL_ID = 'prayer-times';
+// iOS keeps at most 64 pending local notifications; stay below that on every platform.
+const MAX_SCHEDULED = 60;
+
+export async function ensureNotificationPermission(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
+  const existing = await Notifications.getPermissionsAsync();
+  if (existing.granted) return true;
+  if (!existing.canAskAgain) return false;
+  const requested = await Notifications.requestPermissionsAsync();
+  return requested.granted;
+}
+
+async function cancelPrayerNotifications() {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(
     scheduled
@@ -35,75 +39,90 @@ async function cancelAdhanNotifications() {
   );
 }
 
-function reminderDateToday(time: string): Date | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(time);
-  if (!match) return null;
-  const date = new Date();
-  date.setHours(Number(match[1]), Number(match[2]), 0, 0);
-  date.setMinutes(date.getMinutes() - REMINDER_MINUTES_BEFORE);
-  return date;
-}
+type Options = {
+  days: PrayerDay[];
+  enabled: boolean;
+  atTime: boolean;
+  beforeMinutes: number;
+  utcOffset: number;
+  placeLabel: string;
+  t: TranslationKeys;
+};
 
-// Local notifications are scheduled once per prayer for "today" only — there is no
-// background task to compute tomorrow's astronomically-shifted times ahead of time.
-// Rescheduling on every foreground keeps it correct as long as the app is opened daily.
-export function useAdhanNotifications(timings: PrayerTime[], enabled: boolean, cityLabel: string, t: TranslationKeys, refresh: () => void) {
-  const scheduledDayRef = useRef<string | null>(null);
+// Schedules local notifications for the coming week. They are recalculated whenever the times or
+// settings change and every time the app opens, so the queue stays filled while the app is used.
+export function useAdhanNotifications({ days, enabled, atTime, beforeMinutes, utcOffset, placeLabel, t }: Options) {
+  const lastSignature = useRef<string | null>(null);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    if (!enabled || timings.length === 0) {
-      cancelAdhanNotifications();
-      scheduledDayRef.current = null;
-      return;
-    }
+    const active = enabled && days.length > 0 && (atTime || beforeMinutes > 0);
+    const signature = active
+      ? JSON.stringify([days.map((d) => d.times), atTime, beforeMinutes, utcOffset, placeLabel, t.notifyAtTitle])
+      : 'off';
+    if (signature === lastSignature.current) return;
 
     let cancelled = false;
-
     (async () => {
-      const existing = await Notifications.getPermissionsAsync();
-      let status = existing.status;
-      if (status !== 'granted') {
-        const requested = await Notifications.requestPermissionsAsync();
-        status = requested.status;
+      if (!active) {
+        await cancelPrayerNotifications();
+        lastSignature.current = signature;
+        return;
       }
-      if (status !== 'granted' || cancelled) return;
+      const permission = await Notifications.getPermissionsAsync();
+      if (!permission.granted || cancelled) return;
 
-      await ensureAndroidChannel();
-      await cancelAdhanNotifications();
-
-      const todayKey = new Date().toDateString();
-      const now = Date.now();
-      for (const prayer of timings) {
-        const date = reminderDateToday(prayer.time);
-        if (!date || date.getTime() <= now) continue;
-        await Notifications.scheduleNotificationAsync({
-          identifier: `${ID_PREFIX}${prayer.name}-${todayKey}`,
-          content: {
-            title: `${prayer.name} — ${t.notifyPrayerSoonTitle}`,
-            body: `${t.notifyPrayerSoonBody} · ${cityLabel}`,
-            sound: 'default',
-          },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+          name: t.notifyChannelName,
+          importance: Notifications.AndroidImportance.HIGH,
+          sound: 'default',
         });
       }
-      scheduledDayRef.current = todayKey;
-    })();
+      await cancelPrayerNotifications();
+
+      const now = Date.now();
+      const queue: { id: string; date: number; title: string; body: string }[] = [];
+      for (const day of days) {
+        for (const key of FARD_KEYS) {
+          const time = day.times[key];
+          const name = prayerName(t, key);
+          const clock = formatTime(time, utcOffset);
+          if (beforeMinutes > 0) {
+            queue.push({
+              id: `${ID_PREFIX}${day.dateKey}-${key}-before`,
+              date: time - beforeMinutes * 60000,
+              title: `${name} ${t.notifyInMinutes.replace('{n}', String(beforeMinutes))}`,
+              body: `${clock} · ${placeLabel}`,
+            });
+          }
+          if (atTime) {
+            queue.push({
+              id: `${ID_PREFIX}${day.dateKey}-${key}`,
+              date: time,
+              title: `${t.notifyAtTitle}: ${name}`,
+              body: `${clock} · ${placeLabel}`,
+            });
+          }
+        }
+      }
+
+      const upcoming = queue.filter((n) => n.date > now + 5000).sort((a, b) => a.date - b.date).slice(0, MAX_SCHEDULED);
+      for (const n of upcoming) {
+        if (cancelled) return;
+        await Notifications.scheduleNotificationAsync({
+          identifier: n.id,
+          content: { title: n.title, body: n.body, sound: 'default' },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(n.date), channelId: CHANNEL_ID },
+        });
+      }
+      lastSignature.current = signature;
+    })().catch(() => {
+      lastSignature.current = null;
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [enabled, timings, cityLabel, t]);
-
-  useEffect(() => {
-    if (Platform.OS === 'web' || !enabled) return;
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') return;
-      const todayKey = new Date().toDateString();
-      if (scheduledDayRef.current !== todayKey) {
-        refresh();
-      }
-    });
-    return () => subscription.remove();
-  }, [enabled, refresh]);
+  }, [days, enabled, atTime, beforeMinutes, utcOffset, placeLabel, t]);
 }

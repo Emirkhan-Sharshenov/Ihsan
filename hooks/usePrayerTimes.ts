@@ -1,123 +1,225 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import { prayerSchedules, cityNames, GPS_CITY, type PrayerTime } from '@/data/prayerTimes';
+import { cityById, GPS_CITY, isInKyrgyzstan, type CalcMethodId } from '@/data/cities';
+import {
+  applyAdjustments,
+  computePrayerDay,
+  fetchMuftiyatDays,
+  localDateParts,
+  type PrayerDay,
+} from '@/lib/prayerTimes';
+import { useSettings, type AppSettings } from './useSettings';
+import { useNow } from './useNow';
 
-type CityCoords = { lat: number; lon: number; method: number };
+export const DAYS_AHEAD = 7;
+const OFFICIAL_FETCH_DAYS = 30;
 
-const GPS_METHOD = 3;
+const RUSSIAN_TIMEZONES = new Set([
+  'Europe/Kaliningrad', 'Europe/Moscow', 'Europe/Simferopol', 'Europe/Kirov', 'Europe/Volgograd', 'Europe/Astrakhan',
+  'Europe/Saratov', 'Europe/Ulyanovsk', 'Europe/Samara', 'Asia/Yekaterinburg', 'Asia/Omsk', 'Asia/Novosibirsk',
+  'Asia/Barnaul', 'Asia/Tomsk', 'Asia/Novokuznetsk', 'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Chita', 'Asia/Yakutsk',
+  'Asia/Khandyga', 'Asia/Vladivostok', 'Asia/Ust-Nera', 'Asia/Magadan', 'Asia/Sakhalin', 'Asia/Srednekolymsk',
+  'Asia/Kamchatka', 'Asia/Anadyr',
+]);
 
-async function resolveGpsCoords(): Promise<CityCoords | null> {
+function deviceTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export type PrayerLocation = { lat: number; lon: number; utcOffset: number; isGps: boolean };
+
+export function resolveMethod(settings: AppSettings, location: PrayerLocation | null): CalcMethodId {
+  if (settings.method !== 'auto') return settings.method;
+  const preset = cityById[settings.city];
+  if (preset) return preset.method;
+  if (location && isInKyrgyzstan(location.lat, location.lon)) return 'kyrgyzstan';
+  if (RUSSIAN_TIMEZONES.has(deviceTimeZone())) return 'russia';
+  return 'mwl';
+}
+
+export async function requestGpsCoords(): Promise<{ lat: number; lon: number } | null> {
   if (Platform.OS === 'web') {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
     return new Promise((resolve) => {
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, method: GPS_METHOD }),
+        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
         () => resolve(null),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 },
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 },
       );
     });
   }
-
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return null;
-    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    return { lat: pos.coords.latitude, lon: pos.coords.longitude, method: GPS_METHOD };
+    const last = await Location.getLastKnownPositionAsync({ maxAge: 10 * 60000 });
+    const pos = last ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+    return { lat: pos.coords.latitude, lon: pos.coords.longitude };
   } catch {
     return null;
   }
 }
 
-const cityCoords: Record<string, CityCoords> = {
-  'Москва': { lat: 55.7558, lon: 37.6173, method: 2 },
-  'Казань': { lat: 55.8304, lon: 49.0661, method: 2 },
-  'Грозный': { lat: 43.3179, lon: 45.6985, method: 3 },
-  'Махачкала': { lat: 42.9849, lon: 47.5047, method: 3 },
-  'Уфа': { lat: 54.7388, lon: 55.9721, method: 2 },
-  'Бишкек': { lat: 42.8746, lon: 74.5698, method: 2 },
-  'Ош': { lat: 40.5283, lon: 72.7985, method: 2 },
-  'Жалал-Абад': { lat: 40.9333, lon: 73.0, method: 2 },
-};
+// ---- Cache of the official Kyrgyz timetable, shared between hook instances ----
 
-export type HijriDate = {
-  day: string;
-  monthNumber: number;
-  monthEn: string;
-  year: string;
-} | null;
+const officialMemory = new Map<string, PrayerDay[]>();
+const inFlight = new Map<string, Promise<PrayerDay[]>>();
+const cacheKey = (lat: number, lon: number) => `@muftiyat_${lat.toFixed(2)}_${lon.toFixed(2)}`;
 
-type PrayerState = {
-  timings: PrayerTime[];
-  loading: boolean;
-  error: boolean;
-  hijri: HijriDate;
-};
+async function loadOfficial(lat: number, lon: number, force: boolean): Promise<PrayerDay[]> {
+  const key = cacheKey(lat, lon);
+  let cached = officialMemory.get(key);
+  if (!cached) {
+    try {
+      const raw = await AsyncStorage.getItem(key);
+      cached = raw ? (JSON.parse(raw) as PrayerDay[]) : [];
+    } catch {
+      cached = [];
+    }
+    officialMemory.set(key, cached);
+  }
 
-function parseTimings(data: Record<string, string>): PrayerTime[] {
-  const order: [string, string, string][] = [
-    ['Fajr', 'الفجر', 'Фаджр'],
-    ['Dhuhr', 'الظهر', 'Зухр'],
-    ['Asr', 'العصر', 'Аср'],
-    ['Maghrib', 'المغرب', 'Магриб'],
-    ['Isha', 'العشاء', 'Иша'],
-  ];
-  return order.map(([key, arabic, name]) => ({
-    name,
-    arabicName: arabic,
-    time: (data[key] || '00:00').split(' ')[0],
-  }));
+  const today = localDateParts(360, 0);
+  const lastNeeded = localDateParts(360, DAYS_AHEAD - 1);
+  const keys = new Set(cached.map((d) => d.dateKey));
+  const covered = [today, lastNeeded].every(
+    (p) => keys.has(`${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`),
+  );
+  if (covered && !force) return cached;
+
+  let request = inFlight.get(key);
+  if (!request) {
+    request = fetchMuftiyatDays(lat, lon, OFFICIAL_FETCH_DAYS)
+      .then(async (fresh) => {
+        if (fresh.length === 0) throw new Error('empty');
+        officialMemory.set(key, fresh);
+        await AsyncStorage.setItem(key, JSON.stringify(fresh)).catch(() => {});
+        return fresh;
+      })
+      .finally(() => inFlight.delete(key));
+    inFlight.set(key, request);
+  }
+  try {
+    return await request;
+  } catch (e) {
+    if (cached.length > 0) return cached;
+    throw e;
+  }
 }
 
-export function usePrayerTimes(city: string, madhab: 'shafi' | 'hanafi' = 'shafi'): PrayerState & { refresh: () => void } {
-  const [state, setState] = useState<PrayerState>({
-    timings: prayerSchedules[city]?.timings ?? prayerSchedules['Москва'].timings,
-    loading: false,
-    error: false,
-    hijri: null,
-  });
+export type PrayerTimesState = {
+  location: PrayerLocation | null;
+  method: CalcMethodId;
+  days: PrayerDay[]; // today first, adjusted by the user's minute corrections
+  official: boolean;
+  loading: boolean;
+  error: 'gps' | 'network' | null;
+  refresh: () => Promise<void>;
+};
 
-  const fetchTimes = useCallback(async () => {
-    setState((prev) => ({ ...prev, loading: true, error: false }));
+export function usePrayerTimes(): PrayerTimesState {
+  const [settings, setSettings, settingsLoaded] = useSettings();
+  // Tagged with the location it belongs to, so a previous city's timetable is never applied to a new one.
+  const [official, setOfficial] = useState<{ key: string; days: PrayerDay[] }>({ key: '', days: [] });
+  const [error, setError] = useState<'gps' | 'network' | null>(null);
+  const [locating, setLocating] = useState(false);
+  // Re-render once a minute so "today" rolls over at midnight.
+  const now = useNow(60000);
 
-    const coords = city === GPS_CITY ? await resolveGpsCoords() : cityCoords[city];
-    if (!coords) {
-      if (city === GPS_CITY) {
-        setState((prev) => ({ ...prev, loading: false, error: true }));
-      } else {
-        setState((prev) => ({ ...prev, timings: prayerSchedules[city]?.timings ?? [], loading: false, error: false }));
+  const isGps = settings.city === GPS_CITY;
+  const preset = cityById[settings.city];
+
+  const location: PrayerLocation | null = useMemo(() => {
+    if (preset) return { lat: preset.lat, lon: preset.lon, utcOffset: preset.utcOffset, isGps: false };
+    if (isGps && settings.gpsCoords) {
+      return { ...settings.gpsCoords, utcOffset: -new Date().getTimezoneOffset(), isGps: true };
+    }
+    return null;
+  }, [preset, isGps, settings.gpsCoords]);
+
+  const method = resolveMethod(settings, location);
+
+  const locate = useCallback(async () => {
+    setLocating(true);
+    const coords = await requestGpsCoords();
+    setLocating(false);
+    if (coords) {
+      setError(null);
+      setSettings((prev) => ({ ...prev, gpsCoords: coords }));
+    } else {
+      setError('gps');
+    }
+  }, [setSettings]);
+
+  // Ask for GPS only when the user picked "my location" and we have no coordinates yet.
+  useEffect(() => {
+    if (settingsLoaded && isGps && !settings.gpsCoords) locate();
+  }, [settingsLoaded, isGps, settings.gpsCoords, locate]);
+
+  // muftiyat.kg sends no CORS headers, so the official timetable is only requested from the native app.
+  const useOfficial =
+    Platform.OS !== 'web' && method === 'kyrgyzstan' && location !== null && isInKyrgyzstan(location.lat, location.lon);
+
+  const syncOfficial = useCallback(
+    async (force: boolean) => {
+      if (!useOfficial || !location) return;
+      try {
+        const days = await loadOfficial(location.lat, location.lon, force);
+        setOfficial({ key: cacheKey(location.lat, location.lon), days });
+        setError((e) => (e === 'network' ? null : e));
+      } catch {
+        setError((e) => e ?? 'network');
       }
-      return;
-    }
+    },
+    [useOfficial, location],
+  );
 
-    const today = new Date();
-    const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    const school = madhab === 'hanafi' ? 1 : 0;
-
-    try {
-      const res = await fetch(
-        `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${coords.lat}&longitude=${coords.lon}&method=${coords.method}&school=${school}`,
-      );
-      if (!res.ok) throw new Error('Failed');
-      const json = await res.json();
-      const timings = parseTimings(json.data.timings);
-      const hijri: HijriDate = json.data.date?.hijri
-        ? {
-            day: json.data.date.hijri.day,
-            monthNumber: Number(json.data.date.hijri.month?.number ?? 0),
-            monthEn: json.data.date.hijri.month?.en ?? '',
-            year: json.data.date.hijri.year,
-          }
-        : null;
-      setState({ timings, loading: false, error: false, hijri });
-    } catch {
-      setState((prev) => ({ ...prev, loading: false, error: true }));
-    }
-  }, [city, madhab]);
+  const todayKey = location ? JSON.stringify(localDateParts(location.utcOffset, 0, now)) : '';
 
   useEffect(() => {
-    fetchTimes();
-  }, [fetchTimes]);
+    if (!useOfficial) setError((e) => (e === 'network' ? null : e));
+    syncOfficial(false);
+  }, [syncOfficial, useOfficial, todayKey]);
 
-  return { ...state, refresh: fetchTimes };
+  const days = useMemo(() => {
+    if (!location) return [];
+    const officialDays = useOfficial && official.key === cacheKey(location.lat, location.lon) ? official.days : [];
+    const officialByDate = new Map(officialDays.map((d) => [d.dateKey, d]));
+    const result: PrayerDay[] = [];
+    for (let i = 0; i < DAYS_AHEAD; i++) {
+      const { year, month, day } = localDateParts(location.utcOffset, i, now);
+      const computed = computePrayerDay(location.lat, location.lon, year, month, day, method, settings.madhab);
+      const fromMuftiyat = officialByDate.get(computed.dateKey);
+      let base = computed;
+      if (fromMuftiyat) {
+        // The Muftiyat publishes Hanafi Asr; for the Shafi'i Asr keep the calculated value.
+        base = settings.madhab === 'hanafi' ? fromMuftiyat : { ...fromMuftiyat, times: { ...fromMuftiyat.times, asr: computed.times.asr } };
+      }
+      result.push(applyAdjustments(base, settings.adjustments));
+    }
+    return result;
+    // `todayKey` changes at local midnight; `now` itself is intentionally not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, official, useOfficial, method, settings.madhab, settings.adjustments, todayKey]);
+
+  const refresh = useCallback(async () => {
+    if (isGps) await locate();
+    await syncOfficial(true);
+  }, [isGps, locate, syncOfficial]);
+
+  return {
+    location,
+    method,
+    days,
+    official: days[0]?.official ?? false,
+    loading: locating || (isGps && !settings.gpsCoords && error !== 'gps'),
+    // A failed GPS refresh is harmless while the last known coordinates are still available.
+    error: error === 'gps' && location ? null : error,
+    refresh,
+  };
 }

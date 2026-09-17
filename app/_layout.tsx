@@ -6,25 +6,35 @@ import { useSettings } from '@/hooks/useSettings';
 import { useLanguage } from '@/hooks/useLanguage';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { useAdhanNotifications } from '@/hooks/useAdhanNotifications';
-import { prayerSchedules, GPS_CITY } from '@/data/prayerTimes';
+import { useLocationLabel } from '@/hooks/useLocationLabel';
+import { colors } from '@/constants/theme';
 
 export default function RootLayout() {
   useFrameworkReady();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const [settings] = useSettings();
-  const { timings, refresh } = usePrayerTimes(settings.city, settings.madhab);
-  const schedule = prayerSchedules[settings.city];
-  const cityLabel = settings.city === GPS_CITY ? t.cityGpsOption : (schedule ? (lang === 'ky' ? schedule.cityKy : schedule.city) : settings.city);
-  useAdhanNotifications(timings, settings.notificationsEnabled, cityLabel, t, refresh);
+  const { days, location } = usePrayerTimes();
+  const placeLabel = useLocationLabel();
+
+  useAdhanNotifications({
+    days,
+    enabled: settings.notificationsEnabled,
+    atTime: true,
+    beforeMinutes: settings.remindBeforeMinutes,
+    utcOffset: location?.utcOffset ?? 0,
+    placeLabel,
+    t,
+  });
 
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="asma" options={{ presentation: 'card' }} />
+        <Stack.Screen name="asma" />
+        <Stack.Screen name="about" />
         <Stack.Screen name="+not-found" />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </SafeAreaProvider>
   );
 }

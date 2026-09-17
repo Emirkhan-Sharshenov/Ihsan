@@ -1,306 +1,188 @@
 import { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Bell, BookOpen, ChevronRight, Globe, Heart, LocateFixed, MapPin, Settings2, Sparkles, X } from 'lucide-react-native';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Constants from 'expo-constants';
+import { BookOpen, ChevronRight, Clock3, Globe, Heart, Info, ShieldCheck, Sparkles } from 'lucide-react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PrayerSettingsSheet } from '@/components/PrayerSettingsSheet';
+import { BottomSheet, PrimaryButton } from '@/components/ui';
+import { colors } from '@/constants/theme';
+import { duas } from '@/data/duas';
+import { surahs } from '@/data/surahs';
 import { useFavorites } from '@/hooks/useFavorites';
-import { useSettings } from '@/hooks/useSettings';
 import { useLanguage } from '@/hooks/useLanguage';
-import { useQuranSurahs } from '@/hooks/useQuranSurahs';
-import { useSurahFavorites } from '@/hooks/useSurahFavorites';
-import { cityNames, prayerSchedules, GPS_CITY } from '@/data/prayerTimes';
-import duaData from './duas/dua_muslimclub.json';
-import lifeSituationDuas from './duas/dua_life_situations.json';
+import { useLocationLabel } from '@/hooks/useLocationLabel';
+import { useSurahFavorites } from '@/hooks/useQuranSurahs';
+import { useTasbihCount } from '@/hooks/useTasbihCount';
 
-type Dua = { slug: string; title: string; category: string; arabic: string; translation: string; source: string };
-const allDuas = [...(duaData as Dua[]), ...(lifeSituationDuas as Dua[])];
-
-type ModalType = 'favorites' | 'surahs' | 'notifications' | 'city' | 'language' | 'settings' | null;
-type ItemAction = ModalType | { route: '/asma' };
+type Sheet = 'duas' | 'surahs' | 'language' | 'prayer' | null;
 
 export default function ProfileScreen() {
   const { t, lang, setLang } = useLanguage();
   const insets = useSafeAreaInsets();
-  const [modal, setModal] = useState<ModalType>(null);
+  const [sheet, setSheet] = useState<Sheet>(null);
   const { favorites, toggleFavorite } = useFavorites();
-  const [settings, setSettings] = useSettings();
-  const { surahs } = useQuranSurahs();
   const { favorites: favoriteSurahNumbers, toggleFavorite: toggleSurahFavorite } = useSurahFavorites();
+  const { total } = useTasbihCount();
+  const placeLabel = useLocationLabel();
 
-  const favoriteDuas = allDuas.filter((d) => favorites.includes(d.slug));
+  const favoriteDuas = duas.filter((d) => favorites.includes(d.slug));
   const favoriteSurahs = surahs.filter((s) => favoriteSurahNumbers.includes(s.number));
-  const isGpsCity = settings.city === GPS_CITY;
-  const cityBadge = isGpsCity ? t.cityGpsOption : settings.city;
 
-  const items: { label: string; icon: typeof Heart; action: ItemAction; badge?: string | number }[] = [
-    { label: t.profileFavDuasRow, icon: Heart, action: 'favorites', badge: favorites.length || undefined },
-    { label: t.profileFavSurahs, icon: BookOpen, action: 'surahs', badge: favoriteSurahNumbers.length || undefined },
-    { label: t.profileAsmaRow, icon: Sparkles, action: { route: '/asma' } },
-    { label: t.profileNotificationsRow, icon: Bell, action: 'notifications', badge: settings.notificationsEnabled ? (lang === 'ky' ? 'Күйүк' : 'Вкл') : (lang === 'ky' ? 'Өчүк' : 'Выкл') },
-    { label: t.profileCityRow, icon: MapPin, action: 'city', badge: cityBadge },
-    { label: t.profileLanguage, icon: Globe, action: 'language', badge: lang === 'ky' ? 'Кыргызча' : 'Русский' },
-    { label: t.profileSettingsRow, icon: Settings2, action: 'settings' },
+  const rows: { label: string; icon: typeof Heart; onPress: () => void; badge?: string }[] = [
+    { label: t.profilePrayerSettingsRow, icon: Clock3, onPress: () => setSheet('prayer'), badge: placeLabel },
+    { label: t.profileFavDuasRow, icon: Heart, onPress: () => setSheet('duas'), badge: favoriteDuas.length ? String(favoriteDuas.length) : undefined },
+    { label: t.profileFavSurahsRow, icon: BookOpen, onPress: () => setSheet('surahs'), badge: favoriteSurahs.length ? String(favoriteSurahs.length) : undefined },
+    { label: t.profileAsmaRow, icon: Sparkles, onPress: () => router.push('/asma') },
+    { label: t.profileLanguage, icon: Globe, onPress: () => setSheet('language'), badge: lang === 'ky' ? t.languageKy : t.languageRu },
+    { label: t.profileAbout, icon: Info, onPress: () => router.push('/about') },
+    { label: t.profilePrivacy, icon: ShieldCheck, onPress: () => router.push({ pathname: '/about', params: { section: 'privacy' } }) },
   ];
-
-  const methodLabel = (city: string) => {
-    if (city === GPS_CITY) return t.cityGpsMethod;
-    const sched = prayerSchedules[city];
-    if (!sched) return '';
-    return lang === 'ky' ? sched.methodKy : sched.method;
-  };
 
   return (
     <View style={styles.screen}>
-      <LinearGradient colors={['#102D49', '#071526']} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <LinearGradient colors={['#102D49', colors.bg]} style={StyleSheet.absoluteFill} />
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]} showsVerticalScrollIndicator={false}>
         <Text style={styles.eyebrow}>{t.profileEyebrow}</Text>
         <Text style={styles.title}>{t.profileTitle}</Text>
         <View style={styles.profileCard}>
-          <View style={styles.avatar}><Text style={styles.avatarText}>م</Text></View>
-          <View>
-            <Text style={styles.name}>{t.profileName}</Text>
-            <Text style={styles.sub}>{t.profileSub}</Text>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>م</Text>
           </View>
+          <Text style={styles.greeting}>{t.profileGreeting}</Text>
         </View>
 
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{favoriteDuas.length}</Text>
-            <Text style={styles.statLabel}>{t.profileFavDuas}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{favoriteSurahNumbers.length}</Text>
-            <Text style={styles.statLabel}>{t.profileFavSurahs}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{settings.tasbihGoal}</Text>
-            <Text style={styles.statLabel}>{t.profileTasbihGoal}</Text>
-          </View>
+          <Stat value={favoriteDuas.length} label={t.profileFavDuas} />
+          <Stat value={favoriteSurahs.length} label={t.profileFavSurahs} />
+          <Stat value={total} label={t.profileTasbihTotal} />
         </View>
 
-        <Text style={styles.section}>{t.profileSettings}</Text>
-        {items.map(({ label, icon: Icon, action, badge }) => (
-          <Pressable
-            key={label}
-            style={styles.row}
-            onPress={() => (action !== null && typeof action === 'object' ? router.push(action.route as never) : setModal(action))}
-          >
-            <View style={styles.icon}><Icon color="#A9F06B" size={18} /></View>
+        <Text style={styles.section}>{t.profileSection}</Text>
+        {rows.map(({ label, icon: Icon, onPress, badge }) => (
+          <Pressable key={label} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} onPress={onPress} accessibilityRole="button">
+            <View style={styles.icon}>
+              <Icon color={colors.accent} size={18} />
+            </View>
             <Text style={styles.label}>{label}</Text>
-            {badge !== undefined && badge !== 0 ? <Text style={styles.badgeText}>{badge}</Text> : null}
+            {badge ? (
+              <Text style={styles.badgeText} numberOfLines={1}>
+                {badge}
+              </Text>
+            ) : null}
             <ChevronRight color="#7890A6" size={18} />
           </Pressable>
         ))}
 
-        <Text style={styles.note}>{t.profileNote}</Text>
+        <Text style={styles.version}>
+          {t.profileVersion} {Constants.expoConfig?.version ?? '1.0.0'}
+        </Text>
       </ScrollView>
 
-      <Modal visible={modal !== null} transparent animationType="slide" onRequestClose={() => setModal(null)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { paddingBottom: 24 + insets.bottom }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {modal === 'favorites' ? t.profileModalFavorites : modal === 'surahs' ? t.profileFavSurahs : modal === 'notifications' ? t.profileModalNotifications : modal === 'city' ? t.profileModalCity : modal === 'language' ? t.profileLanguage : modal === 'settings' ? t.profileModalSettings : ''}
-              </Text>
-              <Pressable onPress={() => setModal(null)} hitSlop={12}><X color="#94A9BE" size={22} /></Pressable>
-            </View>
+      <PrayerSettingsSheet visible={sheet === 'prayer'} onClose={() => setSheet(null)} />
 
-            {modal === 'favorites' && (
-              <ScrollView style={styles.modalScroll}>
-                {favoriteDuas.length === 0 ? (
-                  <Text style={styles.emptyText}>{t.profileEmptyFavorites}</Text>
-                ) : (
-                  favoriteDuas.map((d) => (
-                    <View key={d.slug} style={styles.favRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.favTitle}>{d.title}</Text>
-                        <Text style={styles.favCategory}>{d.category}</Text>
-                      </View>
-                      <Pressable onPress={() => toggleFavorite(d.slug)} hitSlop={8}>
-                        <Heart color="#F58B8B" fill="#F58B8B" size={18} />
-                      </Pressable>
-                    </View>
-                  ))
-                )}
-                <Pressable style={styles.modalButton} onPress={() => { setModal(null); router.push('/duas'); }}>
-                  <Text style={styles.modalButtonText}>{t.profileGoToDuas}</Text>
-                </Pressable>
-              </ScrollView>
-            )}
+      <BottomSheet visible={sheet === 'duas'} title={t.profileFavDuasRow} onClose={() => setSheet(null)}>
+        {favoriteDuas.length === 0 ? <Text style={styles.emptyText}>{t.profileEmptyFavorites}</Text> : null}
+        {favoriteDuas.map((d) => (
+          <Pressable
+            key={d.slug}
+            style={styles.favRow}
+            onPress={() => {
+              setSheet(null);
+              router.push({ pathname: '/duas', params: { open: d.slug } });
+            }}
+          >
+            <Text style={styles.favTitle}>{d.title}</Text>
+            <Pressable onPress={() => toggleFavorite(d.slug)} hitSlop={10}>
+              <Heart color={colors.heart} fill={colors.heart} size={18} />
+            </Pressable>
+          </Pressable>
+        ))}
+        <PrimaryButton
+          label={t.profileGoToDuas}
+          onPress={() => {
+            setSheet(null);
+            router.push('/duas');
+          }}
+        />
+      </BottomSheet>
 
-            {modal === 'surahs' && (
-              <ScrollView style={styles.modalScroll}>
-                {favoriteSurahs.length === 0 ? (
-                  <Text style={styles.emptyText}>{t.profileEmptyFavSurahs}</Text>
-                ) : (
-                  favoriteSurahs.map((s) => (
-                    <View key={s.number} style={styles.favRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.favTitle}>{s.number}. {s.englishName}</Text>
-                        <Text style={styles.favCategory}>{s.englishNameTranslation} · {s.numberOfAyahs} {t.quranAyahsShort}</Text>
-                      </View>
-                      <Pressable onPress={() => toggleSurahFavorite(s.number)} hitSlop={8}>
-                        <BookOpen color="#A9F06B" size={18} />
-                      </Pressable>
-                    </View>
-                  ))
-                )}
-                <Pressable style={styles.modalButton} onPress={() => { setModal(null); router.push('/quran'); }}>
-                  <Text style={styles.modalButtonText}>{t.profileGoToQuran}</Text>
-                </Pressable>
-              </ScrollView>
-            )}
-
-            {modal === 'notifications' && (
-              <>
-                <Pressable style={styles.toggleRow} onPress={() => setSettings((prev) => ({ ...prev, notificationsEnabled: !prev.notificationsEnabled }))}>
-                  <Text style={styles.toggleLabel}>{t.profileNotifyToggle}</Text>
-                  <View style={[styles.toggle, settings.notificationsEnabled && styles.toggleOn]}>
-                    <View style={[styles.toggleKnob, settings.notificationsEnabled && styles.toggleKnobOn]} />
-                  </View>
-                </Pressable>
-                <Text style={styles.modalHint}>{t.profileNotifyHint}</Text>
-                <Pressable style={styles.modalButton} onPress={() => setModal(null)}>
-                  <Text style={styles.modalButtonText}>{t.homeModalDone}</Text>
-                </Pressable>
-              </>
-            )}
-
-            {modal === 'city' && (
-              <>
-                <View style={styles.cityGrid}>
-                  <Pressable style={[styles.cityChip, styles.cityChipGps, isGpsCity && styles.activeCityChip]} onPress={() => setSettings((prev) => ({ ...prev, city: GPS_CITY }))}>
-                    <LocateFixed color={isGpsCity ? '#0A1C31' : '#94A9BE'} size={14} />
-                    <Text style={[styles.cityChipText, isGpsCity && styles.activeCityChipText]}>{t.cityGpsOption}</Text>
-                  </Pressable>
-                  {cityNames.map((city) => (
-                    <Pressable key={city} style={[styles.cityChip, settings.city === city && styles.activeCityChip]} onPress={() => setSettings((prev) => ({ ...prev, city }))}>
-                      <Text style={[styles.cityChipText, settings.city === city && styles.activeCityChipText]}>{city}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Text style={styles.modalHint}>{t.profileMethod}: {methodLabel(settings.city)}</Text>
-                <Pressable style={styles.modalButton} onPress={() => setModal(null)}>
-                  <Text style={styles.modalButtonText}>{t.homeModalDone}</Text>
-                </Pressable>
-              </>
-            )}
-
-            {modal === 'language' && (
-              <>
-                <Pressable style={[styles.langRow, lang === 'ru' && styles.activeLangRow]} onPress={() => { setLang('ru'); setModal(null); }}>
-                  <Text style={[styles.langText, lang === 'ru' && styles.activeLangText]}>Русский</Text>
-                  {lang === 'ru' && <Text style={styles.langCheck}>✓</Text>}
-                </Pressable>
-                <Pressable style={[styles.langRow, lang === 'ky' && styles.activeLangRow]} onPress={() => { setLang('ky'); setModal(null); }}>
-                  <Text style={[styles.langText, lang === 'ky' && styles.activeLangText]}>Кыргызча</Text>
-                  {lang === 'ky' && <Text style={styles.langCheck}>✓</Text>}
-                </Pressable>
-              </>
-            )}
-
-            {modal === 'settings' && (
-              <>
-                <View style={styles.settingRow}>
-                  <Text style={styles.settingLabel}>{t.profileDarkTheme}</Text>
-                  <Text style={styles.settingValue}>{t.profileAlwaysOn}</Text>
-                </View>
-                <View style={styles.settingRow}>
-                  <Text style={styles.settingLabel}>{t.profileLanguage}</Text>
-                  <Text style={styles.settingValue}>{lang === 'ky' ? 'Кыргызча' : 'Русский'}</Text>
-                </View>
-                <View style={styles.settingRow}>
-                  <Text style={styles.settingLabel}>{t.profileVersion}</Text>
-                  <Text style={styles.settingValue}>1.0.0</Text>
-                </View>
-
-                <Text style={styles.settingsSubHeading}>{t.profileMadhab}</Text>
-                <Text style={styles.settingsHint}>{t.profileMadhabNote}</Text>
-                <View style={styles.madhabRow}>
-                  <Pressable
-                    style={[styles.madhabOption, settings.madhab === 'hanafi' && styles.madhabOptionActive]}
-                    onPress={() => setSettings((prev) => ({ ...prev, madhab: 'hanafi' }))}
-                  >
-                    <Text style={[styles.madhabOptionText, settings.madhab === 'hanafi' && styles.madhabOptionTextActive]}>{t.madhabHanafi}</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.madhabOption, settings.madhab === 'shafi' && styles.madhabOptionActive]}
-                    onPress={() => setSettings((prev) => ({ ...prev, madhab: 'shafi' }))}
-                  >
-                    <Text style={[styles.madhabOptionText, settings.madhab === 'shafi' && styles.madhabOptionTextActive]}>{t.madhabShafi}</Text>
-                  </Pressable>
-                </View>
-
-                <Pressable style={styles.modalButton} onPress={() => setModal(null)}>
-                  <Text style={styles.modalButtonText}>{t.homeModalDone}</Text>
-                </Pressable>
-              </>
-            )}
+      <BottomSheet visible={sheet === 'surahs'} title={t.profileFavSurahsRow} onClose={() => setSheet(null)}>
+        {favoriteSurahs.length === 0 ? <Text style={styles.emptyText}>{t.profileEmptyFavSurahs}</Text> : null}
+        {favoriteSurahs.map((s) => (
+          <View key={s.number} style={styles.favRow}>
+            <Text style={styles.favTitle}>
+              {s.number}. {s.englishName}
+              {lang === 'ru' ? ` · ${s.nameRu}` : ''}
+            </Text>
+            <Pressable onPress={() => toggleSurahFavorite(s.number)} hitSlop={10}>
+              <BookOpen color={colors.accent} size={18} />
+            </Pressable>
           </View>
-        </View>
-      </Modal>
+        ))}
+        <PrimaryButton
+          label={t.profileGoToQuran}
+          onPress={() => {
+            setSheet(null);
+            router.push('/quran');
+          }}
+        />
+      </BottomSheet>
+
+      <BottomSheet visible={sheet === 'language'} title={t.profileLanguage} onClose={() => setSheet(null)}>
+        {(['ru', 'ky'] as const).map((code) => (
+          <Pressable
+            key={code}
+            style={[styles.langRow, lang === code && styles.activeLangRow]}
+            onPress={() => {
+              setLang(code);
+              setSheet(null);
+            }}
+          >
+            <Text style={[styles.langText, lang === code && styles.activeLangText]}>{code === 'ru' ? t.languageRu : t.languageKy}</Text>
+            {lang === code ? <Text style={styles.langCheck}>✓</Text> : null}
+          </Pressable>
+        ))}
+      </BottomSheet>
+    </View>
+  );
+}
+
+function Stat({ value, label }: { value: number; label: string }) {
+  return (
+    <View style={styles.statCard}>
+      <Text style={styles.statNumber}>{value.toLocaleString('ru-RU')}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#071526' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 32 },
-  eyebrow: { color: '#A9F06B', fontSize: 11, letterSpacing: 2, fontWeight: '700' },
-  title: { color: '#F4F8FC', fontSize: 30, fontWeight: '700', marginTop: 9 },
-  profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10243C', borderRadius: 22, padding: 19, borderWidth: 1, borderColor: '#294765', marginTop: 25 },
-  avatar: { width: 55, height: 55, borderRadius: 19, backgroundColor: '#D7F3BE', alignItems: 'center', justifyContent: 'center', marginRight: 15 },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingHorizontal: 22, paddingBottom: 32 },
+  eyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 2, fontWeight: '700' },
+  title: { color: colors.text, fontSize: 30, fontWeight: '700', marginTop: 9 },
+  profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: '#294765', marginTop: 22, gap: 15 },
+  avatar: { width: 52, height: 52, borderRadius: 18, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#214432', fontSize: 26, fontWeight: '700' },
-  name: { color: '#F4F8FC', fontSize: 18, fontWeight: '700' },
-  sub: { color: '#869CAF', fontSize: 11, marginTop: 5, maxWidth: 210 },
-  statsRow: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  statCard: { flex: 1, backgroundColor: '#10243C', borderRadius: 16, borderWidth: 1, borderColor: '#203D5A', padding: 16, alignItems: 'center' },
-  statNumber: { color: '#A9F06B', fontSize: 24, fontWeight: '700' },
+  greeting: { color: colors.text, fontSize: 15, fontWeight: '600', flex: 1, lineHeight: 21 },
+  statsRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  statCard: { flex: 1, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, alignItems: 'center' },
+  statNumber: { color: colors.accent, fontSize: 22, fontWeight: '700' },
   statLabel: { color: '#8298AE', fontSize: 11, marginTop: 4, textAlign: 'center' },
-  section: { color: '#F4F8FC', fontSize: 19, fontWeight: '700', marginTop: 30, marginBottom: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10243C', borderRadius: 17, borderWidth: 1, borderColor: '#203D5A', padding: 14, marginBottom: 9 },
+  section: { color: colors.text, fontSize: 19, fontWeight: '700', marginTop: 28, marginBottom: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 17, borderWidth: 1, borderColor: colors.border, padding: 13, marginBottom: 9 },
   icon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#1D3C54', alignItems: 'center', justifyContent: 'center' },
   label: { flex: 1, color: '#D9E4EE', fontSize: 14, marginLeft: 12 },
-  badgeText: { color: '#A9F06B', fontSize: 12, fontWeight: '600', marginRight: 8 },
-  note: { color: '#72889C', fontSize: 12, lineHeight: 19, marginTop: 25, paddingHorizontal: 4 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(7,21,38,0.8)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#10243C', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderWidth: 1, borderColor: '#24415F', maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { color: '#F4F8FC', fontSize: 20, fontWeight: '700' },
-  modalScroll: { maxHeight: 400 },
-  emptyText: { color: '#849AAF', fontSize: 14, lineHeight: 20, marginBottom: 16 },
-  favRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#203D5A' },
-  favTitle: { color: '#F4F8FC', fontSize: 15, fontWeight: '600' },
-  favCategory: { color: '#8298AE', fontSize: 11, marginTop: 3 },
-  toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-  toggleLabel: { color: '#D9E4EE', fontSize: 15 },
-  toggle: { width: 50, height: 28, borderRadius: 14, backgroundColor: '#294765', padding: 3, justifyContent: 'center' },
-  toggleOn: { backgroundColor: '#A9F06B' },
-  toggleKnob: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#EAF2F8' },
-  toggleKnobOn: { alignSelf: 'flex-end' },
-  modalHint: { color: '#72889C', fontSize: 12, lineHeight: 18, marginTop: 18 },
-  cityGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cityChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14, backgroundColor: '#122B46', borderWidth: 1, borderColor: '#294765' },
-  cityChipGps: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  activeCityChip: { backgroundColor: '#A9F06B', borderColor: '#A9F06B' },
-  cityChipText: { color: '#94A9BE', fontSize: 13, fontWeight: '600' },
-  activeCityChipText: { color: '#0A1C31', fontWeight: '700' },
-  langRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 14, backgroundColor: '#122B46', borderRadius: 14, borderWidth: 1, borderColor: '#294765', marginBottom: 10 },
-  activeLangRow: { backgroundColor: '#1A3D2E', borderColor: '#A9F06B' },
+  badgeText: { color: colors.accent, fontSize: 12, fontWeight: '600', marginHorizontal: 8, maxWidth: 110 },
+  version: { color: colors.textMutedDark, fontSize: 12, textAlign: 'center', marginTop: 18 },
+  emptyText: { color: colors.textMuted, fontSize: 14, lineHeight: 20, marginBottom: 6 },
+  favRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 12 },
+  favTitle: { color: colors.text, fontSize: 15, fontWeight: '600', flex: 1 },
+  langRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 14, backgroundColor: colors.cardAlt, borderRadius: 14, borderWidth: 1, borderColor: '#294765', marginBottom: 10 },
+  activeLangRow: { backgroundColor: '#1A3D2E', borderColor: colors.accent },
   langText: { color: '#D9E4EE', fontSize: 16 },
-  activeLangText: { color: '#A9F06B', fontWeight: '700' },
-  langCheck: { color: '#A9F06B', fontSize: 18, fontWeight: '700' },
-  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#203D5A' },
-  settingsSubHeading: { color: '#F4F8FC', fontSize: 14, fontWeight: '700', marginTop: 18 },
-  settingsHint: { color: '#72889C', fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 12 },
-  madhabRow: { flexDirection: 'row', gap: 10, marginBottom: 8 },
-  madhabOption: { flex: 1, borderRadius: 14, borderWidth: 1, borderColor: '#294765', paddingVertical: 13, alignItems: 'center' },
-  madhabOptionActive: { backgroundColor: '#A9F06B', borderColor: '#A9F06B' },
-  madhabOptionText: { color: '#D9E4EE', fontSize: 13, fontWeight: '600' },
-  madhabOptionTextActive: { color: '#0A1C31' },
-  settingLabel: { color: '#D9E4EE', fontSize: 15 },
-  settingValue: { color: '#8298AE', fontSize: 14 },
-  modalButton: { backgroundColor: '#A9F06B', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 22 },
-  modalButtonText: { color: '#0A1C31', fontWeight: '700', fontSize: 15 },
+  activeLangText: { color: colors.accent, fontWeight: '700' },
+  langCheck: { color: colors.accent, fontSize: 18, fontWeight: '700' },
 });

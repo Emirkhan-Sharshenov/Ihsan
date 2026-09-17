@@ -1,536 +1,486 @@
+import type { CalcMethodId } from './cities';
+import type { DuaCategory } from './duas';
+import type { PrayerKey } from '@/lib/prayerTimes';
+
 export type Lang = 'ru' | 'ky';
 
-export type TranslationKeys = {
-  // Tab labels
-  tabHome: string;
-  tabDuas: string;
-  tabQuran: string;
-  tabTasbih: string;
-  tabQibla: string;
-  tabProfile: string;
+const ru = {
+  tabHome: 'Главная',
+  tabQuran: 'Коран',
+  tabDuas: 'Дуа',
+  tabTasbih: 'Тасбих',
+  tabQibla: 'Кыбла',
+  tabProfile: 'Профиль',
 
-  // Quran
-  quranEyebrow: string;
-  quranTitle: string;
-  quranSearchPlaceholder: string;
-  quranAyahsShort: string;
-  quranMeccan: string;
-  quranMedinan: string;
-  quranContinueReading: string;
-  quranContinueButton: string;
-  quranLoading: string;
-  quranError: string;
-  quranRetry: string;
-  quranEmpty: string;
-  quranTranslationLabel: string;
-  quranTransliterationLabel: string;
-  quranTransliterationNote: string;
-  quranPlaySurah: string;
-  quranStopSurah: string;
-  quranReciterName: string;
-  quranSajdaObligatory: string;
-  quranSajdaRecommended: string;
-  quranAyahLoading: string;
-  quranAyahError: string;
-  quranOpenSurah: string;
-  quranHijriToday: string;
+  done: 'Готово',
+  cancel: 'Отмена',
+  retry: 'Повторить',
+  hoursShort: 'ч',
+  minutesShort: 'мин',
 
-  asmaEyebrow: string;
-  asmaTitle: string;
-  asmaSearchPlaceholder: string;
-  asmaNameOfDay: string;
-  asmaLoading: string;
-  asmaError: string;
-  asmaNote: string;
-  profileAsmaRow: string;
-  homeAsmaCardTitle: string;
+  prayerFajr: 'Фаджр',
+  prayerSunrise: 'Восход',
+  prayerDhuhr: 'Зухр',
+  prayerAsr: 'Аср',
+  prayerMaghrib: 'Магриб',
+  prayerIsha: 'Иша',
 
-  // Home
-  homeEyebrow: string;
-  homeGreeting: string;
-  homeSearchPlaceholder: string;
-  homeHeroTitle: string;
-  homeHeroText: string;
-  homeHeroButton: string;
-  homeQuickAccess: string;
-  homePrayerToday: string;
-  homePrayerAll: string;
-  homeCountdown: string;
-  homeHoursShort: string;
-  homeMinutesShort: string;
-  homeDuaOfDay: string;
-  homePrayerLoading: string;
-  homeNotifications: string;
-  homeModalTitle: string;
-  homeModalCity: string;
-  homeModalToggle: string;
-  homeModalHint: string;
-  homeModalDone: string;
-  notifyPrayerSoonTitle: string;
-  notifyPrayerSoonBody: string;
+  homeEyebrow: 'МИР В СЕРДЦЕ',
+  homeGreeting: 'Ассаляму алейкум',
+  homeSearchPlaceholder: 'Найти дуа',
+  homeHeroTitle: 'Помни своего Господа',
+  homeHeroText: 'Найди минуту для намаза, дуа и благодарности.',
+  homeHeroButton: 'Открыть дуа',
+  homeQuickAccess: 'Быстрый доступ',
+  homePrayerToday: 'Намаз сегодня',
+  homeSettingsLink: 'Настроить',
+  homeCountdown: '{name} через {time}',
+  homeSourceOfficial: 'по расписанию Муфтията КР',
+  homeLocating: 'Определяем местоположение…',
+  homeGpsError: 'Не удалось определить местоположение. Разрешите доступ к геолокации или выберите город.',
+  homeNetworkError: 'Нет связи с сайтом муфтията — показано время по расчёту (18°/16°), оно совпадает с официальным в пределах 1–2 минут.',
+  homeDuaOfDay: 'Дуа дня',
+  homeAsmaCardTitle: 'Имя Аллаха на сегодня',
+  homeSuhur: 'Сухур до',
+  homeIftar: 'Ифтар',
+  homeHijriSuffix: 'г. х.',
+  homeQuranSubtitle: 'Суры и перевод',
+  homeDuasSubtitle: 'Мольбы',
+  homeTasbihSubtitle: 'Зикр',
+  homeQiblaSubtitle: 'Направление',
 
-  // Duas
-  duasEyebrow: string;
-  duasTitle: string;
-  duasIntro: string;
-  duasSearchPlaceholder: string;
-  duasAll: string;
-  duasTexts: string;
-  duasEmpty: string;
-  duasReset: string;
-  duasTranscription: string;
-  duasTranslation: string;
-  duasSource: string;
-  duasCopy: string;
-  duesCopied: string;
-  duasShare: string;
-  duasCategoryCount: string;
+  notifyChannelName: 'Время намаза',
+  notifyAtTitle: 'Время намаза',
+  notifyInMinutes: 'через {n} мин',
+  notifyDenied: 'Уведомления запрещены в настройках телефона. Разрешите их для приложения, чтобы получать напоминания.',
 
-  // Categories
-  catAll: string;
-  catNamazy: string;
-  catRepentance: string;
-  catRemembrance: string;
-  catDaily: string;
-  catDifficulties: string;
-  catGrief: string;
-  catProtection: string;
-  catRamadan: string;
-  catNature: string;
-  catHolidays: string;
-  catHealth: string;
-  catAnxiety: string;
-  catMotivation: string;
-  catFinance: string;
-  catDecisions: string;
-  catRoutine: string;
-  catStudy: string;
-  catSelfEsteem: string;
-  catRelationships: string;
-  catHealthSleep: string;
-  catFears: string;
-  catCareer: string;
+  settingsTitle: 'Время намаза',
+  settingsCity: 'Место',
+  cityGpsOption: 'Моё местоположение',
+  cityGpsRefresh: 'Обновить координаты',
+  settingsMethod: 'Метод расчёта',
+  methodAuto: 'Автоматически',
+  methodAutoHint: 'Кыргызстан — по муфтияту КР, Россия — по ДУМ РФ',
+  settingsMadhab: 'Время Асра',
+  madhabHanafi: 'Ханафитский мазхаб',
+  madhabShafi: 'Шафиитский, маликитский, ханбалитский',
+  madhabNote: 'По ханафитскому мазхабу Аср начинается, когда тень предмета становится вдвое длиннее его самого (не считая тени в полдень), по остальным — когда тень равна длине предмета, поэтому Аср наступает раньше.',
+  settingsAdjustments: 'Поправка, минут',
+  adjustmentsHint: 'Если время в вашей мечети отличается, сдвиньте его здесь.',
+  settingsNotifications: 'Уведомления',
+  notifyAtTimeLabel: 'В начале времени намаза',
+  notifyBeforeLabel: 'Напомнить заранее',
+  notifyOff: 'Нет',
+  notifyHint: 'Напоминания планируются на 7 дней вперёд. Откройте приложение хотя бы раз в неделю. Если уведомления приходят с опозданием, отключите для приложения экономию батареи.',
+  settingsHijri: 'Дата по хиджре',
+  hijriAdjustHint: 'Начало месяца зависит от наблюдения луны, поэтому дата может отличаться на день. Сверьтесь с объявлением муфтията.',
+  prayerDisclaimer: 'Время рассчитано астрономически. При сомнении сверяйтесь с расписанием своей мечети или духовного управления, а начало поста и праздников узнавайте из официальных объявлений.',
 
-  // Tasbih
-  tasbihEyebrow: string;
-  tasbihTitle: string;
-  tasbihCurrentPhrase: string;
-  tasbihTap: string;
-  tasbihGoal: string;
-  tasbihRounds: string;
-  tasbihReset: string;
-  tasbihTotal: string;
-  tasbihResetConfirm: string;
-  tasbihSettingsTitle: string;
-  tasbihGoalPerRound: string;
-  tasbihPhrases: string;
-  tasbihAddPhrase: string;
-  tasbihDone: string;
+  duasEyebrow: 'ДУХОВНЫЙ ПУТЬ',
+  duasTitle: 'Дуа и зикры',
+  duasIntro: 'Мольбы из Корана и достоверной Сунны с указанием источника.',
+  duasSearchPlaceholder: 'Поиск по дуа',
+  duasAll: 'Все',
+  duasFavorites: 'Избранное',
+  duasCount: 'текстов: {n}',
+  duasEmpty: 'Ничего не найдено',
+  duasReset: 'Сбросить поиск',
+  duasTranscription: 'ТРАНСКРИПЦИЯ',
+  duasTranslation: 'ПЕРЕВОД СМЫСЛА',
+  duasSource: 'Источник',
+  duasCopy: 'Копировать',
+  duasCopied: 'Скопировано',
+  duasShare: 'Поделиться',
+  duasTranscriptionNote: 'Русская транскрипция передаёт звучание приблизительно. Правильному произношению лучше учиться у знающего человека.',
+  duasLanguageNote: '',
 
-  // Qibla
-  qiblaEyebrow: string;
-  qiblaTitle: string;
-  qiblaFindingLocation: string;
-  qiblaLocationDenied: string;
-  qiblaEnableLocation: string;
-  qiblaYourLocation: string;
-  qiblaQiblaDirection: string;
-  qiblaDegrees: string;
-  qiblaCompassUnavailable: string;
-  qiblaAlignPhone: string;
-  qiblaDistance: string;
-  qiblaKaaba: string;
+  catAll: 'Все',
+  catPrayer: 'Намаз',
+  catDhikr: 'Зикр',
+  catRepentance: 'Покаяние',
+  catDaily: 'Повседневные',
+  catFood: 'Еда',
+  catSleep: 'Сон',
+  catTravel: 'В пути',
+  catHardship: 'Трудности',
+  catAnxiety: 'Тревога',
+  catGrief: 'Скорбь',
+  catFears: 'Страх',
+  catProtection: 'Защита',
+  catHealth: 'Здоровье',
+  catFinance: 'Долги и удел',
+  catStudy: 'Учёба',
+  catDecisions: 'Выбор',
+  catRelationships: 'Семья и люди',
+  catMotivation: 'Лень и слабость',
+  catRamadan: 'Пост',
+  catHolidays: 'Праздники',
+  catNature: 'Природа',
 
-  // Profile
-  profileEyebrow: string;
-  profileTitle: string;
-  profileName: string;
-  profileSub: string;
-  profileFavDuas: string;
-  profileFavSurahs: string;
-  profileTasbihGoal: string;
-  profileSettings: string;
-  profileFavDuasRow: string;
-  profileNotificationsRow: string;
-  profileCityRow: string;
-  profileSettingsRow: string;
-  profileNote: string;
-  profileModalFavorites: string;
-  profileModalNotifications: string;
-  profileModalCity: string;
-  profileModalSettings: string;
-  profileEmptyFavorites: string;
-  profileEmptyFavSurahs: string;
-  profileGoToDuas: string;
-  profileGoToQuran: string;
-  profileNotifyToggle: string;
-  profileNotifyHint: string;
-  profileMethod: string;
-  cityGpsOption: string;
-  cityGpsMethod: string;
-  profileDarkTheme: string;
-  profileAlwaysOn: string;
-  profileLanguage: string;
-  profileVersion: string;
-  profileMadhab: string;
-  profileMadhabNote: string;
-  madhabHanafi: string;
-  madhabShafi: string;
+  quranEyebrow: 'СВЯЩЕННЫЙ КОРАН',
+  quranTitle: 'Коран',
+  quranSearchPlaceholder: 'Сура: название или номер',
+  quranAyahsShort: 'аятов',
+  quranMeccan: 'мекканская',
+  quranMedinan: 'мединская',
+  quranContinueReading: 'Продолжить чтение',
+  quranEmpty: 'Суры не найдены',
+  quranTranslationLabel: 'ПЕРЕВОД СМЫСЛОВ',
+  quranTranslationSource: 'Перевод смыслов: Эльмир Кулиев',
+  quranTransliterationLabel: 'ТРАНСЛИТЕРАЦИЯ (ЛАТИНИЦА)',
+  quranTransliterationNote: 'Перевод передаёт лишь смысл и не является Кораном. Латинская транслитерация приблизительна и не заменяет чтения по-арабски с таджвидом.',
+  quranShowTransliteration: 'Транслитерация',
+  quranPlaySurah: 'Слушать суру',
+  quranStopSurah: 'Остановить',
+  quranReciterName: 'Мишари Рашид аль-Афаси',
+  quranAyahLoading: 'Загрузка аятов…',
+  quranAyahError: 'Не удалось загрузить суру. Проверьте интернет — после первого открытия сура будет доступна без сети.',
+  quranAudioNeedsInternet: 'Для аудио нужен интернет',
+  quranSajdaHanafi: '۩ Аят саджда: после чтения совершается земной поклон (ваджиб по ханафитскому мазхабу)',
+  quranSajdaShafi: '۩ Аят саджда: после чтения желателен земной поклон (сунна)',
+  quranSajdaNotHanafi: '۩ Второй земной поклон суры «Аль-Хаджж» совершается по шафиитскому мазхабу; по ханафитскому здесь саджда не делается',
+  quranSajdaSadShafi: '۩ По шафиитскому мазхабу — земной поклон благодарности вне намаза',
+  quranBismillahNote: '',
 
-  // Prayer names
-  prayerFajr: string;
-  prayerZuhr: string;
-  prayerAsr: string;
-  prayerMaghrib: string;
-  prayerIsha: string;
+  asmaEyebrow: '99 ИМЁН АЛЛАХА',
+  asmaTitle: 'Асма-уль-Хусна',
+  asmaSearchPlaceholder: 'Поиск по имени, значению или номеру',
+  asmaNameOfDay: 'ИМЯ ДНЯ',
+  asmaNote: 'Приведён наиболее известный список (ат-Тирмизи, 3507). Многие мухаддисы считают, что перечисление имён в этом хадисе добавлено передатчиками. У Аллаха есть и другие имена. Значения даны кратко и не передают всей полноты смысла.',
+
+  tasbihEyebrow: 'ПОМИНАНИЕ АЛЛАХА',
+  tasbihTitle: 'Тасбих',
+  tasbihCurrentPhrase: 'Текущий зикр',
+  tasbihTap: 'Нажмите, чтобы посчитать',
+  tasbihGoal: 'Цель',
+  tasbihRounds: 'Кругов',
+  tasbihReset: 'Сбросить',
+  tasbihTotal: 'Всего',
+  tasbihResetConfirm: 'Сбросить счётчик?',
+  tasbihSettingsTitle: 'Настройки тасбиха',
+  tasbihGoalPerRound: 'Сколько раз в круге',
+  tasbihPhrases: 'Фразы зикра',
+  tasbihAddPhrase: 'Добавить фразу…',
+  tasbihRoundDone: 'Круг завершён',
+  tasbihHint: 'После каждого намаза желательно произнести «Субханаллах» 33 раза, «Альхамдулиллях» 33 раза и «Аллаху акбар» 33 (или 34) раза (Муслим, 596–597).',
+
+  qiblaEyebrow: 'НАПРАВЛЕНИЕ НА КААБУ',
+  qiblaTitle: 'Кыбла',
+  qiblaFindingLocation: 'Определение местоположения…',
+  qiblaLocationDenied: 'Нет доступа к геолокации. Без неё нельзя определить направление.',
+  qiblaEnableLocation: 'Разрешить геолокацию',
+  qiblaYourLocation: 'Ваши координаты',
+  qiblaDirection: 'Направление кыблы',
+  qiblaFromNorth: 'от севера',
+  qiblaDistance: 'До Каабы',
+  qiblaKm: 'км',
+  qiblaAligned: 'Вы повернулись к Каабе',
+  qiblaTurnRight: 'Повернитесь вправо на {n}°',
+  qiblaTurnLeft: 'Повернитесь влево на {n}°',
+  qiblaNoCompass: 'Компас на этом устройстве недоступен. Кыбла — {deg}° по часовой стрелке от севера.',
+  qiblaCalibrate: 'Держите телефон горизонтально, вдали от металла, магнитов и электроприборов. Если стрелка ведёт себя странно — откалибруйте компас, поводив телефоном «восьмёркой».',
+  qiblaLowAccuracy: 'Низкая точность компаса — откалибруйте его движением «восьмёркой».',
+
+  profileEyebrow: 'ВАШЕ ПРОСТРАНСТВО',
+  profileTitle: 'Профиль',
+  profileGreeting: 'Да благословит Аллах ваш день',
+  profileFavDuas: 'Дуа в избранном',
+  profileFavSurahs: 'Суры в избранном',
+  profileTasbihTotal: 'Зикров всего',
+  profileSection: 'Настройки',
+  profileFavDuasRow: 'Избранные дуа',
+  profileFavSurahsRow: 'Избранные суры',
+  profileAsmaRow: '99 имён Аллаха',
+  profilePrayerSettingsRow: 'Время намаза и уведомления',
+  profileLanguage: 'Язык',
+  profileAbout: 'О приложении и источниках',
+  profilePrivacy: 'Политика конфиденциальности',
+  profileEmptyFavorites: 'Пока нет избранных дуа. Нажмите на сердечко рядом с дуа.',
+  profileEmptyFavSurahs: 'Пока нет избранных сур. Нажмите на звёздочку рядом с сурой.',
+  profileGoToDuas: 'Перейти к дуа',
+  profileGoToQuran: 'Перейти к Корану',
+  profileVersion: 'Версия',
+  aboutText:
+    'Приложение бесплатное, без рекламы и регистрации. Все данные хранятся только на вашем телефоне.\n\nИсточники:\n• Время намаза для Кыргызстана — официальное расписание Духовного управления мусульман Кыргызстана (muftiyat.kg); для других мест — астрономический расчёт (библиотека Adhan).\n• Арабский текст Корана (мусхаф Усмани), перевод Э. Кулиева, транслитерация и аудио — Al Quran Cloud / Islamic Network.\n• Кыргызский перевод смыслов Корана — Шамсуддин Хакимов, QuranEnc.com.\n• Дуа — Коран и сборники хадисов, источник указан у каждого текста.\n\nПриложение не заменяет обращения к знающим людям. Если вы нашли ошибку, пожалуйста, сообщите нам — исправим как можно скорее.',
+  languageRu: 'Русский',
+  languageKy: 'Кыргызча',
+
+  notFoundTitle: 'Страница не найдена',
+  notFoundBack: 'На главную',
+
+  methodKyrgyzstan: 'Муфтият Кыргызстана (18°/16°)',
+  methodRussia: 'ДУМ РФ (16°/15°)',
+  methodMwl: 'Всемирная исламская лига (18°/17°)',
+  methodUmmalqura: 'Умм аль-Кура, Мекка',
 };
 
-export const translations: Record<Lang, TranslationKeys> = {
-  ru: {
-    tabHome: 'Главная',
-    tabDuas: 'Дуа',
-    tabQuran: 'Коран',
-    tabTasbih: 'Тасбих',
-    tabQibla: 'Кыбла',
-    tabProfile: 'Профиль',
+export type TranslationKeys = typeof ru;
 
-    quranEyebrow: 'СВЯЩЕННЫЙ КОРАН',
-    quranTitle: 'Коран',
-    quranSearchPlaceholder: 'Поиск суры по названию или номеру',
-    quranAyahsShort: 'аятов',
-    quranMeccan: 'Мекканская',
-    quranMedinan: 'Мединская',
-    quranContinueReading: 'Продолжить чтение',
-    quranContinueButton: 'Продолжить',
-    quranLoading: 'Загрузка сур...',
-    quranError: 'Не удалось загрузить список сур',
-    quranRetry: 'Повторить',
-    quranEmpty: 'Суры не найдены',
-    quranTranslationLabel: 'Перевод (Кулиев)',
-    quranTransliterationLabel: 'Транслитерация (лат.)',
-    quranTransliterationNote: 'Транслитерация приблизительно передаёт звучание латиницей (издание Corpus Quran) и не заменяет точное произношение с таджвидом — сверяйтесь с чтецом или устазом.',
-    quranPlaySurah: 'Слушать суру',
-    quranStopSurah: 'Остановить',
-    quranReciterName: 'Мишари Рашид аль-Афаси',
-    quranSajdaObligatory: '۩ Обязательное простирание (саджда ваджиб)',
-    quranSajdaRecommended: '۩ Рекомендованное простирание (саджда мустахабб)',
-    quranAyahLoading: 'Загрузка аятов...',
-    quranAyahError: 'Не удалось загрузить текст суры',
-    quranOpenSurah: 'Открыть',
-    quranHijriToday: 'по хиджре',
-    asmaEyebrow: '99 ИМЁН АЛЛАХА',
-    asmaTitle: 'Асма-уль-Хусна',
-    asmaSearchPlaceholder: 'Поиск по имени или номеру',
-    asmaNameOfDay: 'ИМЯ ДНЯ',
-    asmaLoading: 'Загрузка имён...',
-    asmaError: 'Не удалось загрузить список',
-    asmaNote: 'Список из 99 имён приводится по хадису в Сунан ат-Тирмизи. У Аллаха есть и другие имена, известные и неизвестные творениям.',
-    profileAsmaRow: '99 имён Аллаха',
-    homeAsmaCardTitle: 'Имя дня',
+const ky: TranslationKeys = {
+  tabHome: 'Башкы',
+  tabQuran: 'Куран',
+  tabDuas: 'Дуба',
+  tabTasbih: 'Тасбих',
+  tabQibla: 'Кыбла',
+  tabProfile: 'Профиль',
 
-    homeEyebrow: 'МИР В СЕРДЦЕ',
-    homeGreeting: 'Ассаляму алейкум',
-    homeSearchPlaceholder: 'Найти дуа, суру или поминание',
-    homeHeroTitle: 'Помни своего Господа',
-    homeHeroText: 'Найди минуту для тишины, дуа и благодарности.',
-    homeHeroButton: 'Открыть дуа',
-    homeQuickAccess: 'Быстрый доступ',
-    homePrayerToday: 'Намаз сегодня',
-    homePrayerAll: 'Все',
-    homeCountdown: 'До',
-    homeHoursShort: 'ч',
-    homeMinutesShort: 'мин',
-    homeDuaOfDay: 'Дуа дня',
-    homePrayerLoading: 'Загрузка времени намаза...',
-    homeNotifications: 'Уведомления о намазе',
-    homeModalTitle: 'Уведомления о намазе',
-    homeModalCity: 'Город',
-    homeModalToggle: 'Напоминать о намазе',
-    homeModalHint: 'Время намаза показано для выбранного города. Уведомления будут приходить за 15 минут до каждой молитвы.',
-    homeModalDone: 'Готово',
-    notifyPrayerSoonTitle: 'через 15 минут',
-    notifyPrayerSoonBody: 'Время намаза приближается',
+  done: 'Даяр',
+  cancel: 'Жокко чыгаруу',
+  retry: 'Кайра аракет кылуу',
+  hoursShort: 'саат',
+  minutesShort: 'мүн',
 
-    duasEyebrow: 'ДУХОВНЫЙ ПУТЬ',
-    duasTitle: 'Дуа и поминания',
-    duasIntro: 'Мольба — это прямое обращение к Всевышнему Аллаху. Выбирай дуа для своего состояния и читай осознанно.',
-    duasSearchPlaceholder: 'Поиск по дуа',
-    duasAll: 'Все дуа',
-    duasTexts: 'текстов',
-    duasEmpty: 'Ничего не найдено',
-    duasReset: 'Сбросить поиск',
-    duasTranscription: 'Транскрипция',
-    duasTranslation: 'Перевод',
-    duasSource: 'Источник',
-    duasCopy: 'Копировать',
-    duesCopied: 'Скопировано',
-    duasShare: 'Поделиться',
-    duasCategoryCount: 'дуа в категории',
+  prayerFajr: 'Багымдат',
+  prayerSunrise: 'Күн чыгуу',
+  prayerDhuhr: 'Бешим',
+  prayerAsr: 'Аср',
+  prayerMaghrib: 'Шам',
+  prayerIsha: 'Куптан',
 
-    catAll: 'Все',
-    catNamazy: 'Намазы',
-    catRepentance: 'Покаяние',
-    catRemembrance: 'Поминания',
-    catDaily: 'Повседневные',
-    catDifficulties: 'Трудности',
-    catGrief: 'Скорбь',
-    catProtection: 'Защита',
-    catRamadan: 'Рамадан',
-    catNature: 'Природа',
-    catHolidays: 'Праздники',
-    catHealth: 'Здоровье',
-    catAnxiety: 'Тревога и стресс',
-    catMotivation: 'Мотивация и воля',
-    catFinance: 'Финансы и долги',
-    catDecisions: 'Решения и призвание',
-    catRoutine: 'Быт и время',
-    catStudy: 'Учёба и память',
-    catSelfEsteem: 'Самооценка',
-    catRelationships: 'Отношения',
-    catHealthSleep: 'Здоровье и сон',
-    catFears: 'Страхи и одиночество',
-    catCareer: 'Работа и карьера',
+  homeEyebrow: 'ЖҮРӨКТӨ ТЫНЧТЫК',
+  homeGreeting: 'Ассалоому алейкум',
+  homeSearchPlaceholder: 'Дуба издөө',
+  homeHeroTitle: 'Раббиңди эсте',
+  homeHeroText: 'Намаз, дуба жана шүгүр үчүн бир мүнөт тап.',
+  homeHeroButton: 'Дубаларды ачуу',
+  homeQuickAccess: 'Тез өтүү',
+  homePrayerToday: 'Бүгүнкү намаз убакыттары',
+  homeSettingsLink: 'Жөндөө',
+  homeCountdown: '{name} — {time} калды',
+  homeSourceOfficial: 'КМДБ жадыбалы боюнча',
+  homeLocating: 'Жайгашкан жер аныкталууда…',
+  homeGpsError: 'Жайгашкан жерди аныктоо мүмкүн болгон жок. Геолокацияга уруксат бериңиз же шаарды тандаңыз.',
+  homeNetworkError: 'Муфтияттын сайтына туташуу жок — эсептелген убакыт көрсөтүлдү (18°/16°), расмий убакыттан 1–2 мүнөткө чейин гана айырмаланат.',
+  homeDuaOfDay: 'Күндүн дубасы',
+  homeAsmaCardTitle: 'Бүгүнкү Алланын ысымы',
+  homeSuhur: 'Саресеп',
+  homeIftar: 'Ооз ачуу',
+  homeHijriSuffix: 'х.',
+  homeQuranSubtitle: 'Сүрөлөр жана котормо',
+  homeDuasSubtitle: 'Дубалар',
+  homeTasbihSubtitle: 'Зикир',
+  homeQiblaSubtitle: 'Багыт',
 
-    tasbihEyebrow: 'ТИХОЕ ПОМИНАНИЕ',
-    tasbihTitle: 'Тасбих',
-    tasbihCurrentPhrase: 'Текущая фраза',
-    tasbihTap: 'Нажми, чтобы помянуть',
-    tasbihGoal: 'Цель',
-    tasbihRounds: 'Кругов пройдено',
-    tasbihReset: 'Сбросить',
-    tasbihTotal: 'Всего',
-    tasbihResetConfirm: 'Сбросить счётчик?',
-    tasbihSettingsTitle: 'Настройки тасбиха',
-    tasbihGoalPerRound: 'Цель на круг',
-    tasbihPhrases: 'Фразы для поминания',
-    tasbihAddPhrase: 'Добавить фразу...',
-    tasbihDone: 'Готово',
+  notifyChannelName: 'Намаз убактысы',
+  notifyAtTitle: 'Намаз убактысы кирди',
+  notifyInMinutes: '{n} мүнөттөн кийин',
+  notifyDenied: 'Телефондун жөндөөлөрүндө билдирмелерге тыюу салынган. Эскертмелерди алуу үчүн тиркемеге уруксат бериңиз.',
 
-    qiblaEyebrow: 'НАПРАВЛЕНИЕ НА КААБУ',
-    qiblaTitle: 'Кыбла',
-    qiblaFindingLocation: 'Определение местоположения...',
-    qiblaLocationDenied: 'Доступ к геолокации запрещён',
-    qiblaEnableLocation: 'Включить геолокацию',
-    qiblaYourLocation: 'Ваше местоположение',
-    qiblaQiblaDirection: 'Направление Кыблы',
-    qiblaDegrees: '°',
-    qiblaCompassUnavailable: 'Компас недоступен на этом устройстве',
-    qiblaAlignPhone: 'Поверните телефон, чтобы стрелка совпала с севером',
-    qiblaDistance: 'До Каабы',
-    qiblaKaaba: 'Кааба',
+  settingsTitle: 'Намаз убактысы',
+  settingsCity: 'Жер',
+  cityGpsOption: 'Менин жайгашкан жерим',
+  cityGpsRefresh: 'Координаттарды жаңыртуу',
+  settingsMethod: 'Эсептөө ыкмасы',
+  methodAuto: 'Автоматтык',
+  methodAutoHint: 'Кыргызстанда — КМДБ, Орусияда — Орусиянын ДУМ боюнча',
+  settingsMadhab: 'Аср убактысы',
+  madhabHanafi: 'Ханафий мазхабы',
+  madhabShafi: 'Шафиий, Маликий, Ханбалий',
+  madhabNote: 'Ханафий мазхабы боюнча Аср нерсенин көлөкөсү өзүнөн эки эсе узун болгондо (түшкү көлөкөнү эсептебегенде) кирет, калгандары боюнча — көлөкө нерсенин узундугуна барабар болгондо, ошондуктан Аср эртерээк кирет.',
+  settingsAdjustments: 'Оңдоо, мүнөт',
+  adjustmentsHint: 'Мечитиңиздеги убакыт башкача болсо, бул жерден жылдырыңыз.',
+  settingsNotifications: 'Эскертмелер',
+  notifyAtTimeLabel: 'Намаз убактысы киргенде',
+  notifyBeforeLabel: 'Алдын ала эскертүү',
+  notifyOff: 'Жок',
+  notifyHint: 'Эскертмелер 7 күнгө алдын ала пландалат. Тиркемени жумасына жок дегенде бир жолу ачыңыз. Эскертмелер кечигип келсе, тиркеме үчүн батареяны үнөмдөөнү өчүрүңүз.',
+  settingsHijri: 'Хижрий дата',
+  hijriAdjustHint: 'Ай жаңы айдын көрүнүшүнө жараша башталат, ошондуктан дата бир күнгө айырмаланышы мүмкүн. Муфтияттын кулактандыруусу менен салыштырыңыз.',
+  prayerDisclaimer: 'Убакыт астрономиялык жол менен эсептелген. Шектенсеңиз, мечитиңиздин же муфтияттын жадыбалы менен салыштырыңыз. Орозо жана майрамдардын башталышын расмий кулактандыруудан билиңиз.',
 
-    profileEyebrow: 'ТВОЁ ПРОСТРАНСТВО',
-    profileTitle: 'Профиль',
-    profileName: 'Муслим',
-    profileSub: 'Пусть каждый день будет наполнен баракатом',
-    profileFavDuas: 'Дуа в избранном',
-    profileFavSurahs: 'Сур в избранном',
-    profileTasbihGoal: 'Цель тасбиха',
-    profileSettings: 'Настройки',
-    profileFavDuasRow: 'Избранные дуа',
-    profileNotificationsRow: 'Уведомления о намазе',
-    profileCityRow: 'Город и метод расчёта',
-    profileSettingsRow: 'Настройки приложения',
-    profileNote: 'Тексты дуа собраны по материалам исламской литературы. Проверяй произношение у знающего наставника.',
-    profileModalFavorites: 'Избранные дуа',
-    profileModalNotifications: 'Уведомления',
-    profileModalCity: 'Город',
-    profileModalSettings: 'Настройки',
-    profileEmptyFavorites: 'Пока нет избранных дуа. Нажми на сердечко рядом с дуа, чтобы добавить.',
-    profileEmptyFavSurahs: 'Пока нет избранных сур. Нажми на звёздочку рядом с сурой, чтобы добавить.',
-    profileGoToDuas: 'Перейти к дуа',
-    profileGoToQuran: 'Перейти к Корану',
-    profileNotifyToggle: 'Напоминать о намазе',
-    profileNotifyHint: 'Уведомления будут приходить за 15 минут до каждой молитвы.',
-    profileMethod: 'Метод',
-    cityGpsOption: 'Моё местоположение',
-    cityGpsMethod: 'Определено по GPS',
-    profileDarkTheme: 'Тёмная тема',
-    profileAlwaysOn: 'Всегда включена',
-    profileLanguage: 'Язык интерфейса',
-    profileVersion: 'Версия',
-    profileMadhab: 'Мазхаб (расчёт времени Аср)',
-    profileMadhabNote: 'Влияет на время начала Аср: в ханафитском мазхабе тень предмета должна стать вдвое длиннее, в шафиитском — просто длиннее самого предмета, поэтому Аср наступает раньше.',
-    madhabHanafi: 'Ханафи',
-    madhabShafi: 'Шафии / Малики / Ханбали',
-    prayerFajr: 'Фаджр',
-    prayerZuhr: 'Зухр',
-    prayerAsr: 'Аср',
-    prayerMaghrib: 'Магриб',
-    prayerIsha: 'Иша',
-  },
+  duasEyebrow: 'РУХАНИЙ ЖОЛ',
+  duasTitle: 'Дуба жана зикирлер',
+  duasIntro: 'Куран жана ишенимдүү сүннөттөгү дубалар, булагы көрсөтүлгөн.',
+  duasSearchPlaceholder: 'Дубаны издөө',
+  duasAll: 'Баары',
+  duasFavorites: 'Тандалгандар',
+  duasCount: 'тексттер: {n}',
+  duasEmpty: 'Эч нерсе табылган жок',
+  duasReset: 'Издөөнү тазалоо',
+  duasTranscription: 'ОКУЛУШУ',
+  duasTranslation: 'МААНИСИ (орус тилинде)',
+  duasSource: 'Булагы',
+  duasCopy: 'Көчүрүү',
+  duasCopied: 'Көчүрүлдү',
+  duasShare: 'Бөлүшүү',
+  duasTranscriptionNote: 'Орусча транскрипция окулушун болжолдуу гана берет. Туура айтылышын билген адамдан үйрөнгөн жакшы.',
+  duasLanguageNote: 'Дубалардын котормосу азырынча орус тилинде гана.',
 
-  ky: {
-    tabHome: 'Башкы',
-    tabDuas: 'Дуа',
-    tabQuran: 'Кураан',
-    tabTasbih: 'Тасбих',
-    tabQibla: 'Кыбла',
-    tabProfile: 'Профиль',
+  catAll: 'Баары',
+  catPrayer: 'Намаз',
+  catDhikr: 'Зикир',
+  catRepentance: 'Тообо',
+  catDaily: 'Күндөлүк',
+  catFood: 'Тамак',
+  catSleep: 'Уйку',
+  catTravel: 'Сапар',
+  catHardship: 'Кыйынчылык',
+  catAnxiety: 'Тынчсыздануу',
+  catGrief: 'Кайгы',
+  catFears: 'Коркуу',
+  catProtection: 'Коргонуу',
+  catHealth: 'Ден соолук',
+  catFinance: 'Карыз жана ырыскы',
+  catStudy: 'Окуу',
+  catDecisions: 'Тандоо',
+  catRelationships: 'Үй-бүлө жана адамдар',
+  catMotivation: 'Жалкоолук',
+  catRamadan: 'Орозо',
+  catHolidays: 'Майрамдар',
+  catNature: 'Жаратылыш',
 
-    quranEyebrow: 'ЫЙЫК КУРААН',
-    quranTitle: 'Кураан',
-    quranSearchPlaceholder: 'Сураны аты же номери менен издөө',
-    quranAyahsShort: 'аят',
-    quranMeccan: 'Меккелик',
-    quranMedinan: 'Мединалык',
-    quranContinueReading: 'Окууну улантуу',
-    quranContinueButton: 'Улантуу',
-    quranLoading: 'Сүрөлөр жүктөлүүдө...',
-    quranError: 'Сүрөлөр тизмеси жүктөлгөн жок',
-    quranRetry: 'Кайра аракет кылуу',
-    quranEmpty: 'Сүрөлөр табылган жок',
-    quranTranslationLabel: 'Котормо (Кулиев)',
-    quranTransliterationLabel: 'Транслитерация (латын)',
-    quranTransliterationNote: 'Транслитерация үндөрдү болжол менен латын арибинде берет (Corpus Quran басылышы) жана таджвид менен так айтылышын алмаштырбайт — чтец же устаздан текшертип алыңыз.',
-    quranPlaySurah: 'Сураны угуу',
-    quranStopSurah: 'Токтотуу',
-    quranReciterName: 'Мишари Рашид аль-Афаси',
-    quranSajdaObligatory: '۩ Милдеттүү сажда (саждаи важиб)',
-    quranSajdaRecommended: '۩ Сунатталган сажда (саждаи мустахаб)',
-    quranAyahLoading: 'Аяттар жүктөлүүдө...',
-    quranAyahError: 'Сүрөнүн тексти жүктөлгөн жок',
-    quranOpenSurah: 'Ачуу',
-    quranHijriToday: 'хижри боюнча',
-    asmaEyebrow: 'АЛЛАНЫН 99 ЫСЫМЫ',
-    asmaTitle: 'Асма-уль-Хусна',
-    asmaSearchPlaceholder: 'Ысым же номер боюнча издөө',
-    asmaNameOfDay: 'КҮНДҮН ЫСЫМЫ',
-    asmaLoading: 'Ысымдар жүктөлүүдө...',
-    asmaError: 'Тизме жүктөлгөн жок',
-    asmaNote: '99 ысымдын тизмеси Сунан ат-Тирмизидеги хадис боюнча берилген. Аллахтын дагы башка, жаратылгандарга белгилүү жана белгисиз ысымдары бар.',
-    profileAsmaRow: 'Алланын 99 ысымы',
-    homeAsmaCardTitle: 'Күндүн ысымы',
+  quranEyebrow: 'ЫЙЫК КУРАН',
+  quranTitle: 'Куран',
+  quranSearchPlaceholder: 'Сүрө: аты же номери',
+  quranAyahsShort: 'аят',
+  quranMeccan: 'Меккелик',
+  quranMedinan: 'Мединалык',
+  quranContinueReading: 'Окууну улантуу',
+  quranEmpty: 'Сүрөлөр табылган жок',
+  quranTranslationLabel: 'МААНИЛЕРИНИН КОТОРМОСУ',
+  quranTranslationSource: 'Маанилеринин котормосу: Шамсуддин Хакимов (QuranEnc)',
+  quranTransliterationLabel: 'ТРАНСЛИТЕРАЦИЯ (ЛАТЫН)',
+  quranTransliterationNote: 'Котормо маанини гана берет жана Куран эмес. Латын транслитерациясы болжолдуу, таджвид менен арабча окууну алмаштырбайт.',
+  quranShowTransliteration: 'Транслитерация',
+  quranPlaySurah: 'Сүрөнү угуу',
+  quranStopSurah: 'Токтотуу',
+  quranReciterName: 'Мишари Рашид аль-Афаси',
+  quranAyahLoading: 'Аяттар жүктөлүүдө…',
+  quranAyahError: 'Сүрөнү жүктөө мүмкүн болгон жок. Интернетти текшериңиз — биринчи ачылгандан кийин сүрө интернетсиз да ачылат.',
+  quranAudioNeedsInternet: 'Аудио үчүн интернет керек',
+  quranSajdaHanafi: '۩ Сажда аяты: окугандан кийин сажда кылынат (ханафий мазхабында ваджиб)',
+  quranSajdaShafi: '۩ Сажда аяты: окугандан кийин сажда кылуу сүннөт',
+  quranSajdaNotHanafi: '۩ «Хаж» сүрөсүндөгү экинчи сажда шафиий мазхабы боюнча кылынат; ханафий мазхабында бул жерде сажда жок',
+  quranSajdaSadShafi: '۩ Шафиий мазхабы боюнча — намаздан тышкары шүгүр саждасы',
+  quranBismillahNote: '',
 
-    homeEyebrow: 'ЖҮРӨКТӨ ТЫНЧТЫК',
-    homeGreeting: 'Ассаляму алейкум',
-    homeSearchPlaceholder: 'Дуа, сура же зикир издөө',
-    homeHeroTitle: 'Раббыңды эске ал',
-    homeHeroText: 'Тынчтык, дуа жана шүгүр үчүн бир мүнөт тап.',
-    homeHeroButton: 'Дуа ачуу',
-    homeQuickAccess: 'Тез өтүү',
-    homePrayerToday: 'Бүгүнкү намаз',
-    homePrayerAll: 'Баары',
-    homeCountdown: 'Чейин',
-    homeHoursShort: 'ст',
-    homeMinutesShort: 'мүн',
-    homeDuaOfDay: 'Күндүн дуасы',
-    homePrayerLoading: 'Намаз убактысы жүктөлүүдө...',
-    homeNotifications: 'Намаз жөнүндө эскертме',
-    homeModalTitle: 'Намаз жөнүндө эскертме',
-    homeModalCity: 'Шаар',
-    homeModalToggle: 'Намаз жөнүндө эскерт',
-    homeModalHint: 'Тандалган шаар үчүн намаз убактысы көрсөтүлгөн. Эскертме ар бир намазга 15 мүнөт калганда келет.',
-    homeModalDone: 'Даяр',
-    notifyPrayerSoonTitle: '15 мүнөттөн кийин',
-    notifyPrayerSoonBody: 'Намаз убактысы жакындап калды',
+  asmaEyebrow: 'АЛЛАНЫН 99 ЫСЫМЫ',
+  asmaTitle: 'Асма-ул-Хусна',
+  asmaSearchPlaceholder: 'Ысым, мааниси же номери боюнча издөө',
+  asmaNameOfDay: 'КҮНДҮН ЫСЫМЫ',
+  asmaNote: 'Эң белгилүү тизме берилди (ат-Тирмизи, 3507). Көптөгөн мухаддистер бул хадистеги ысымдардын санагы хадисти берүүчүлөр тарабынан кошулган деп эсептешет. Алланын башка ысымдары да бар. Маанилери орус тилинде кыскача берилген.',
 
-    duasEyebrow: 'РУХАНИ ЖОЛ',
-    duasTitle: 'Дуа жана зикирлер',
-    duasIntro: 'Дуа — Аллах Таалаға түз кайрылуу. Өзүңдүн абалыңа жараша дуа тандап, акыл менен окуп чык.',
-    duasSearchPlaceholder: 'Дуа боюнча издөө',
-    duasAll: 'Бардык дуа',
-    duasTexts: 'текст',
-    duasEmpty: 'Табылган жок',
-    duasReset: 'Издөөнү тазалоо',
-    duasTranscription: 'Транскрипция',
-    duasTranslation: 'Котормо',
-    duasSource: 'Булак',
-    duasCopy: 'Көчүрүү',
-    duesCopied: 'Көчүрүлдү',
-    duasShare: 'Бөлүшүү',
-    duasCategoryCount: 'дуа категорияда',
+  tasbihEyebrow: 'АЛЛАНЫ ЗИКИР КЫЛУУ',
+  tasbihTitle: 'Тасбих',
+  tasbihCurrentPhrase: 'Учурдагы зикир',
+  tasbihTap: 'Санаш үчүн басыңыз',
+  tasbihGoal: 'Максат',
+  tasbihRounds: 'Айлампа',
+  tasbihReset: 'Тазалоо',
+  tasbihTotal: 'Баары',
+  tasbihResetConfirm: 'Эсептегичти тазалайсызбы?',
+  tasbihSettingsTitle: 'Тасбих жөндөөлөрү',
+  tasbihGoalPerRound: 'Бир айлампада канча жолу',
+  tasbihPhrases: 'Зикир сөздөрү',
+  tasbihAddPhrase: 'Сөз кошуу…',
+  tasbihRoundDone: 'Айлампа бүттү',
+  tasbihHint: 'Ар бир намаздан кийин «Субханаллах» 33 жолу, «Алхамдулиллах» 33 жолу жана «Аллаху акбар» 33 (же 34) жолу айтуу мустахаб (Муслим, 596–597).',
 
-    catAll: 'Баары',
-    catNamazy: 'Намаздар',
-    catRepentance: 'Төбө келүү',
-    catRemembrance: 'Зикирлер',
-    catDaily: 'Күнүмдүк',
-    catDifficulties: 'Кыйынчылыктар',
-    catGrief: 'Кайгы',
-    catProtection: 'Коргоо',
-    catRamadan: 'Рамадан',
-    catNature: 'Жаратылыш',
-    catHolidays: 'Майрамдар',
-    catHealth: 'Ден-соолук',
-    catAnxiety: 'Коркунуч жана стресс',
-    catMotivation: 'Мотивация жана эркиндик',
-    catFinance: 'Каржы жана карыздар',
-    catDecisions: 'Чечим жана чакырык',
-    catRoutine: 'Турмуш жана убакыт',
-    catStudy: 'Окуу жана эс',
-    catSelfEsteem: 'Өзүн баалоо',
-    catRelationships: 'Мамилелер',
-    catHealthSleep: 'Ден-соолук жана уйку',
-    catFears: 'Коркунучтар жана жалгыздык',
-    catCareer: 'Жумуш жана карьера',
+  qiblaEyebrow: 'КААБАГА БАГЫТ',
+  qiblaTitle: 'Кыбла',
+  qiblaFindingLocation: 'Жайгашкан жер аныкталууда…',
+  qiblaLocationDenied: 'Геолокацияга уруксат жок. Анысыз багытты аныктоо мүмкүн эмес.',
+  qiblaEnableLocation: 'Геолокацияга уруксат берүү',
+  qiblaYourLocation: 'Координаттарыңыз',
+  qiblaDirection: 'Кыбла багыты',
+  qiblaFromNorth: 'түндүктөн',
+  qiblaDistance: 'Каабага чейин',
+  qiblaKm: 'км',
+  qiblaAligned: 'Сиз Каабага бурулдуңуз',
+  qiblaTurnRight: 'Оңго {n}° бурулуңуз',
+  qiblaTurnLeft: 'Солго {n}° бурулуңуз',
+  qiblaNoCompass: 'Бул түзмөктө компас жок. Кыбла түндүктөн саат жебеси боюнча {deg}°.',
+  qiblaCalibrate: 'Телефонду горизонталдуу, темирден, магниттерден жана электр шаймандарынан алыс кармаңыз. Жебе туура эмес көрсөтсө, телефонду «сегиз» сыяктуу кыймылдатып компасты калибрлеңиз.',
+  qiblaLowAccuracy: 'Компастын тактыгы төмөн — телефонду «сегиз» сыяктуу кыймылдатып калибрлеңиз.',
 
-    tasbihEyebrow: 'ТЫНЧ ЗИКИР',
-    tasbihTitle: 'Тасбих',
-    tasbihCurrentPhrase: 'Учурдагы сөз',
-    tasbihTap: 'Зикир кылуу үчүн бас',
-    tasbihGoal: 'Максат',
-    tasbihRounds: 'Өткөн айланыма',
-    tasbihReset: 'Тазалоо',
-    tasbihTotal: 'Жалпы',
-    tasbihResetConfirm: 'Санаачы тазалансынбы?',
-    tasbihSettingsTitle: 'Тасбих жөндөөлөрү',
-    tasbihGoalPerRound: 'Айланага максат',
-    tasbihPhrases: 'Зикир сөздөрү',
-    tasbihAddPhrase: 'Сөз кошуу...',
-    tasbihDone: 'Даяр',
+  profileEyebrow: 'СИЗДИН МЕЙКИНДИК',
+  profileTitle: 'Профиль',
+  profileGreeting: 'Алла күнүңүздү берекелүү кылсын',
+  profileFavDuas: 'Тандалган дуба',
+  profileFavSurahs: 'Тандалган сүрө',
+  profileTasbihTotal: 'Бардык зикир',
+  profileSection: 'Жөндөөлөр',
+  profileFavDuasRow: 'Тандалган дубалар',
+  profileFavSurahsRow: 'Тандалган сүрөлөр',
+  profileAsmaRow: 'Алланын 99 ысымы',
+  profilePrayerSettingsRow: 'Намаз убактысы жана эскертмелер',
+  profileLanguage: 'Тил',
+  profileAbout: 'Тиркеме жана булактар жөнүндө',
+  profilePrivacy: 'Купуялык саясаты',
+  profileEmptyFavorites: 'Азырынча тандалган дуба жок. Дубанын жанындагы жүрөкчөнү басыңыз.',
+  profileEmptyFavSurahs: 'Азырынча тандалган сүрө жок. Сүрөнүн жанындагы жылдызчаны басыңыз.',
+  profileGoToDuas: 'Дубаларга өтүү',
+  profileGoToQuran: 'Куранга өтүү',
+  profileVersion: 'Версия',
+  aboutText:
+    'Тиркеме акысыз, жарнамасыз жана каттоосуз. Бардык маалымат телефонуңузда гана сакталат.\n\nБулактар:\n• Кыргызстан үчүн намаз убактысы — Кыргызстан мусулмандарынын дин башкармалыгынын расмий жадыбалы (muftiyat.kg); башка жерлер үчүн — астрономиялык эсептөө (Adhan китепканасы).\n• Курандын арабча тексти (Усмани мусхафы), Э. Кулиевдин котормосу, транслитерация жана аудио — Al Quran Cloud / Islamic Network.\n• Курандын кыргызча котормосу — Шамсуддин Хакимов, QuranEnc.com.\n• Дубалар — Куран жана хадис жыйнактары, ар биринин булагы көрсөтүлгөн.\n\nТиркеме билимдүү адамдарга кайрылууну алмаштырбайт. Ката тапсаңыз, бизге кабарлаңыз — тезинен оңдойбуз.',
+  languageRu: 'Русский',
+  languageKy: 'Кыргызча',
 
-    qiblaEyebrow: 'Каабага багыт',
-    qiblaTitle: 'Кыбла',
-    qiblaFindingLocation: 'Жайгашкан жерди аныктоо...',
-    qiblaLocationDenied: 'Геолокацияга уруксат жок',
-    qiblaEnableLocation: 'Геолокацияны күйгүзүү',
-    qiblaYourLocation: 'Сенин жайгашкан жерң',
-    qiblaQiblaDirection: 'Кыбла багыты',
-    qiblaDegrees: '°',
-    qiblaCompassUnavailable: 'Бул түзмөктө компас жок',
-    qiblaAlignPhone: 'Телефондун бурчу түндүк менен дал келгенче бурулт',
-    qiblaDistance: 'Каабага чейин',
-    qiblaKaaba: 'Кааба',
+  notFoundTitle: 'Барак табылган жок',
+  notFoundBack: 'Башкы бетке',
 
-    profileEyebrow: 'СЕНИН МЕЙКИНДИГИҢ',
-    profileTitle: 'Профиль',
-    profileName: 'Муслим',
-    profileSub: 'Ар бир күн баракатка толсун',
-    profileFavDuas: 'Тандалган дуа',
-    profileFavSurahs: 'Тандалган сура',
-    profileTasbihGoal: 'Тасбих максаты',
-    profileSettings: 'Жөндөөлөр',
-    profileFavDuasRow: 'Тандалган дуалар',
-    profileNotificationsRow: 'Намаз жөнүндө эскертме',
-    profileCityRow: 'Шаар жана эсептөө ыкмасы',
-    profileSettingsRow: 'Тиркеме жөндөөлөрү',
-    profileNote: 'Дуа тексттери ислам адабиятынын материалдары боюнча жыйналган. Айтканын билген устаздан текшертип ал.',
-    profileModalFavorites: 'Тандалган дуалар',
-    profileModalNotifications: 'Эскертмелер',
-    profileModalCity: 'Шаар',
-    profileModalSettings: 'Жөндөөлөр',
-    profileEmptyFavorites: 'Азырынча тандалган дуа жок. Дуанын жанындагы жүрөкчөнү басып кош.',
-    profileEmptyFavSurahs: 'Азырынча тандалган сура жок. Сүрөнүн жанындагы жылдызчаны басып кош.',
-    profileGoToDuas: 'Дуаларга өтүү',
-    profileGoToQuran: 'Кураанга өтүү',
-    profileNotifyToggle: 'Намаз жөнүндө эскерт',
-    profileNotifyHint: 'Эскертме ар бир намазга 15 мүнөт калганда келет.',
-    profileMethod: 'Ыкма',
-    cityGpsOption: 'Менин жайгашкан жерим',
-    cityGpsMethod: 'GPS аркылуу аныкталды',
-    profileDarkTheme: 'Кара тема',
-    profileAlwaysOn: 'Дайыма күйүк',
-    profileLanguage: 'Интерфейс тили',
-    profileVersion: 'Версия',
-    profileMadhab: 'Мазхаб (Аср убактысын эсептөө)',
-    profileMadhabNote: 'Аср убактысынын башталышына таасир этет: ханафи мазхабында нерсенин көлөкөсү өз узундугунан эки эсе узун болушу керек, ал эми шафии мазхабында жөн эле нерседен узун болсо жетиштүү, ошондуктан Аср эртерээк келет.',
-    madhabHanafi: 'Ханафи',
-    madhabShafi: 'Шафии / Малики / Ханбали',
-    prayerFajr: 'Фажр',
-    prayerZuhr: 'Зухр',
-    prayerAsr: 'Аср',
-    prayerMaghrib: 'Магриб',
-    prayerIsha: 'Иша',
-  },
+  methodKyrgyzstan: 'Кыргызстан муфтияты (18°/16°)',
+  methodRussia: 'Орусиянын ДУМ (16°/15°)',
+  methodMwl: 'Дүйнөлүк ислам лигасы (18°/17°)',
+  methodUmmalqura: 'Умм ал-Кура, Мекке',
+};
+
+export const translations: Record<Lang, TranslationKeys> = { ru, ky };
+
+const PRAYER_NAME_KEYS: Record<PrayerKey, keyof TranslationKeys> = {
+  fajr: 'prayerFajr',
+  sunrise: 'prayerSunrise',
+  dhuhr: 'prayerDhuhr',
+  asr: 'prayerAsr',
+  maghrib: 'prayerMaghrib',
+  isha: 'prayerIsha',
+};
+
+export function prayerName(t: TranslationKeys, key: PrayerKey): string {
+  return t[PRAYER_NAME_KEYS[key]];
+}
+
+const METHOD_NAME_KEYS: Record<CalcMethodId, keyof TranslationKeys> = {
+  kyrgyzstan: 'methodKyrgyzstan',
+  russia: 'methodRussia',
+  mwl: 'methodMwl',
+  ummalqura: 'methodUmmalqura',
+};
+
+export function methodName(t: TranslationKeys, method: CalcMethodId): string {
+  return t[METHOD_NAME_KEYS[method]];
+}
+
+const CATEGORY_KEYS: Record<DuaCategory, keyof TranslationKeys> = {
+  prayer: 'catPrayer',
+  dhikr: 'catDhikr',
+  repentance: 'catRepentance',
+  daily: 'catDaily',
+  food: 'catFood',
+  sleep: 'catSleep',
+  travel: 'catTravel',
+  hardship: 'catHardship',
+  anxiety: 'catAnxiety',
+  grief: 'catGrief',
+  fears: 'catFears',
+  protection: 'catProtection',
+  health: 'catHealth',
+  finance: 'catFinance',
+  study: 'catStudy',
+  decisions: 'catDecisions',
+  relationships: 'catRelationships',
+  motivation: 'catMotivation',
+  ramadan: 'catRamadan',
+  holidays: 'catHolidays',
+  nature: 'catNature',
+};
+
+export function categoryName(t: TranslationKeys, category: DuaCategory): string {
+  return t[CATEGORY_KEYS[category]];
+}
+
+export const hijriMonths: Record<Lang, string[]> = {
+  ru: ['Мухаррам', 'Сафар', 'Раби‘ аль-авваль', 'Раби‘ ас-сани', 'Джумада аль-уля', 'Джумада ас-сания', 'Раджаб', 'Ша‘бан', 'Рамадан', 'Шавваль', 'Зуль-ка‘да', 'Зуль-хиджжа'],
+  ky: ['Мухаррам', 'Сафар', 'Рабиул-аввал', 'Рабиус-сани', 'Жумадал-ула', 'Жумадас-сания', 'Ражаб', 'Шаабан', 'Рамазан', 'Шаввал', 'Зул-каада', 'Зул-хижжа'],
 };

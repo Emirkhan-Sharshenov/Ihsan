@@ -1,22 +1,44 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
-    "slug": "bolt-expo-nativewind",
+    "name": "Ихсан",
+    "slug": "ihsan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "ihsan",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#071526",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#071526"
+    },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "kg.emirkhan.ihsan",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Приложению нужен доступ к геолокации, чтобы точно определить направление на Каабу и время намаза для вашего города.",
-        "UIBackgroundModes": ["audio"]
+        "NSLocationWhenInUseUsageDescription": "Геолокация нужна, чтобы рассчитать время намаза и направление на Каабу для вашего места. Координаты не передаются нам и не сохраняются на серверах."
       }
     },
     "android": {
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "package": "kg.emirkhan.ihsan",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#071526"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -26,20 +48,26 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-web-browser",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Приложению нужен доступ к геолокации, чтобы точно определить направление на Каабу (Кыбла)."
+          "locationWhenInUsePermission": "Геолокация нужна, чтобы рассчитать время намаза и направление на Каабу для вашего места. Координаты не передаются нам и не сохраняются на серверах."
         }
       ],
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
+          "icon": "./assets/images/notification-icon.png",
           "color": "#A9F06B"
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
