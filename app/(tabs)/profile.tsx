@@ -47,9 +47,6 @@ export default function ProfileScreen() {
         <Text style={styles.eyebrow}>{t.profileEyebrow}</Text>
         <Text style={styles.title}>{t.profileTitle}</Text>
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>م</Text>
-          </View>
           <Text style={styles.greeting}>{t.profileGreeting}</Text>
         </View>
 
@@ -163,10 +160,8 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 22, paddingBottom: 32 },
   eyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 2, fontWeight: '700' },
   title: { color: colors.text, fontSize: 30, fontWeight: '700', marginTop: 9 },
-  profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: '#294765', marginTop: 22, gap: 15 },
-  avatar: { width: 52, height: 52, borderRadius: 18, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#214432', fontSize: 26, fontWeight: '700' },
-  greeting: { color: colors.text, fontSize: 15, fontWeight: '600', flex: 1, lineHeight: 21 },
+  profileCard: { backgroundColor: colors.card, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: '#294765', marginTop: 22 },
+  greeting: { color: colors.text, fontSize: 16, fontWeight: '600', lineHeight: 22 },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
   statCard: { flex: 1, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, alignItems: 'center' },
   statNumber: { color: colors.accent, fontSize: 22, fontWeight: '700' },
