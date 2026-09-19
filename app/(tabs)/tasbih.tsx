@@ -1,29 +1,30 @@
 import { useRef, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Check, ChevronLeft, ChevronRight, RotateCcw, Settings2, X } from 'lucide-react-native';
+import { Check, ChevronLeft, ChevronRight, Infinity as InfinityIcon, RefreshCcw, RotateCcw, Settings2, Vibrate, VibrateOff, X } from 'lucide-react-native';
 import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomSheet, Chip, PrimaryButton } from '@/components/ui';
-import { colors } from '@/constants/theme';
+import { ArabicText, BottomSheet, Card, Chip, IconButton, PrimaryButton, ScreenBackground, ScreenHeader, type } from '@/components/ui';
+import { colors, fonts } from '@/constants/theme';
+import type { Lang } from '@/data/translations';
 import { useLanguage } from '@/hooks/useLanguage';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { useSettings } from '@/hooks/useSettings';
 import { useTasbihCount } from '@/hooks/useTasbihCount';
 
 const GOALS = [33, 34, 99, 100];
+const QUICK_GOALS = [33, 99, 0]; // 0 = no limit
 
-// Arabic for the default phrases, shown under the Cyrillic text.
-const ARABIC: Record<string, string> = {
-  'Субханаллах': 'سُبْحَانَ اللَّهِ',
-  'Альхамдулиллях': 'الْحَمْدُ لِلَّهِ',
-  'Аллаху акбар': 'اللَّهُ أَكْبَرُ',
-  'Астагфируллах': 'أَسْتَغْفِرُ اللَّهَ',
-  'Ля иляха илляллах': 'لَا إِلَهَ إِلَّا اللَّهُ',
+// Arabic and meaning for the well-known phrases; custom phrases are shown as typed.
+const KNOWN: Record<string, { arabic: string; meaning: Record<Lang, string> }> = {
+  'Субханаллах': { arabic: 'سُبْحَانَ اللَّهِ', meaning: { ru: 'Пречист Аллах от всяких недостатков', ky: 'Алла бардык кемчиликтен пок' } },
+  'Альхамдулиллях': { arabic: 'الْحَمْدُ لِلَّهِ', meaning: { ru: 'Хвала Аллаху', ky: 'Аллага мактоо' } },
+  'Аллаху акбар': { arabic: 'اللَّهُ أَكْبَرُ', meaning: { ru: 'Аллах велик', ky: 'Алла Улук' } },
+  'Астагфируллах': { arabic: 'أَسْتَغْفِرُ اللَّهَ', meaning: { ru: 'Прошу прощения у Аллаха', ky: 'Алладан кечирим сураймын' } },
+  'Ля иляха илляллах': { arabic: 'لَا إِلَهَ إِلَّا اللَّهُ', meaning: { ru: 'Нет божества, кроме Аллаха', ky: 'Аллахтан башка кудай жок' } },
 };
 
 export default function TasbihScreen() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const insets = useSafeAreaInsets();
   const { count, total, increment, reset } = useTasbihCount();
   const [settings, setSettings] = useSettings();
@@ -34,20 +35,24 @@ export default function TasbihScreen() {
   const scale = useRef(new Animated.Value(1)).current;
 
   const phrases = settings.tasbihPhrases;
-  const goal = Math.max(1, settings.tasbihGoal);
-  const phrase = phrases.length > 0 ? phrases[Math.min(phraseIndex, phrases.length - 1)] : '—';
-  const roundsCompleted = Math.floor(count / goal);
-  const progressInRound = count % goal;
+  const goal = Math.max(0, settings.tasbihGoal);
+  const unlimited = goal === 0;
+  const currentIndex = Math.min(phraseIndex, Math.max(0, phrases.length - 1));
+  const phrase = phrases[currentIndex] ?? '—';
+  const known = KNOWN[phrase];
+  const roundsCompleted = unlimited ? 0 : Math.floor(count / goal);
+  const progressInRound = unlimited ? count : count % goal;
+  const vibrate = settings.tasbihVibration && Platform.OS !== 'web';
 
   const handleTap = () => {
     const next = count + 1;
     increment();
-    if (Platform.OS !== 'web') {
-      if (next % goal === 0) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    if (vibrate) {
+      if (!unlimited && next % goal === 0) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
     Animated.sequence([
-      Animated.timing(scale, { toValue: 0.95, duration: 60, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 0.96, duration: 60, useNativeDriver: true }),
       Animated.spring(scale, { toValue: 1, friction: 4, useNativeDriver: true }),
     ]).start();
   };
@@ -71,65 +76,121 @@ export default function TasbihScreen() {
     setPhraseIndex((prev) => (prev > index || prev >= phrases.length - 1 ? Math.max(0, prev - 1) : prev));
   };
 
+  const setGoal = (g: number) => setSettings((prev) => ({ ...prev, tasbihGoal: g }));
+
   return (
     <View style={styles.screen}>
-      <LinearGradient colors={['#153957', colors.bg]} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.eyebrow}>{t.tasbihEyebrow}</Text>
-            <Text style={styles.title}>{t.tasbihTitle}</Text>
+      <ScreenBackground />
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]} showsVerticalScrollIndicator={false}>
+        <ScreenHeader title={t.tabTasbih} />
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={type.eyebrow}>{t.tasbihEyebrow}</Text>
+            <Text style={type.display}>{t.tasbihTitle}</Text>
           </View>
-          <Pressable style={styles.iconButton} onPress={() => setShowSettings(true)} accessibilityRole="button" accessibilityLabel={t.tasbihSettingsTitle}>
-            <Settings2 color="#D8E8F5" size={20} />
-          </Pressable>
+          <IconButton
+            label={t.tasbihVibrationLabel}
+            active={settings.tasbihVibration}
+            onPress={() => setSettings((prev) => ({ ...prev, tasbihVibration: !prev.tasbihVibration }))}
+          >
+            {settings.tasbihVibration ? <Vibrate color={colors.accent} size={20} /> : <VibrateOff color={colors.textMuted} size={20} />}
+          </IconButton>
+          <IconButton label={t.tasbihSettingsTitle} onPress={() => setShowSettings(true)}>
+            <Settings2 color={colors.text} size={20} />
+          </IconButton>
         </View>
 
-        <View style={styles.selector}>
-          <Text style={styles.selectorLabel}>{t.tasbihCurrentPhrase}</Text>
+        <Card style={styles.phraseCard}>
           <View style={styles.phraseNav}>
             <Pressable style={styles.navArrow} onPress={() => cyclePhrase(-1)} hitSlop={8} accessibilityRole="button">
-              <ChevronLeft color="#849AAF" size={26} />
+              <ChevronLeft color={colors.textMuted} size={22} />
             </Pressable>
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              {ARABIC[phrase] ? <Text style={styles.phraseArabic}>{ARABIC[phrase]}</Text> : null}
-              <Text style={styles.phrase}>{phrase}</Text>
+            <View style={styles.dots}>
+              {phrases.map((item, index) => (
+                <Pressable key={`${item}-${index}`} onPress={() => setPhraseIndex(index)} hitSlop={6} style={[styles.dot, index === currentIndex && styles.activeDot]} />
+              ))}
             </View>
             <Pressable style={styles.navArrow} onPress={() => cyclePhrase(1)} hitSlop={8} accessibilityRole="button">
-              <ChevronRight color="#849AAF" size={26} />
+              <ChevronRight color={colors.textMuted} size={22} />
             </Pressable>
           </View>
-          <View style={styles.dots}>
-            {phrases.map((item, index) => (
-              <Pressable key={`${item}-${index}`} onPress={() => setPhraseIndex(index)} hitSlop={6} style={[styles.dot, index === Math.min(phraseIndex, phrases.length - 1) && styles.activeDot]} />
-            ))}
+          {known ? (
+            <ArabicText size={30} style={{ color: colors.accent, textAlign: 'center' }}>
+              {known.arabic}
+            </ArabicText>
+          ) : null}
+          <Text style={styles.phrase}>{phrase}</Text>
+          {known ? <Text style={[type.muted, { textAlign: 'center' }]}>{known.meaning[lang]}</Text> : null}
+        </Card>
+
+        <View style={styles.counterWrap}>
+          <View style={styles.ringOuter}>
+            <Animated.View style={{ transform: [{ scale }] }}>
+              <Pressable onPress={handleTap} style={({ pressed }) => [styles.counter, pressed && styles.counterPressed]} accessibilityRole="button" accessibilityLabel={`${count}`}>
+                <Text style={styles.count}>{count}</Text>
+                <Text style={styles.tap}>{(!unlimited && count > 0 && progressInRound === 0 ? t.tasbihRoundDone : t.tasbihTap).toUpperCase()}</Text>
+              </Pressable>
+            </Animated.View>
           </View>
         </View>
 
-        <Animated.View style={{ alignSelf: 'center', transform: [{ scale }] }}>
-          <Pressable onPress={handleTap} style={({ pressed }) => [styles.counter, pressed && styles.counterPressed]} accessibilityRole="button" accessibilityLabel={`${count}`}>
-            <Text style={styles.count}>{count}</Text>
-            <Text style={styles.tap}>{count > 0 && progressInRound === 0 ? t.tasbihRoundDone : t.tasbihTap}</Text>
-            <View style={styles.progressWrap}>
-              <View style={[styles.progressBar, { width: `${(progressInRound / goal) * 100}%` }]} />
+        {!unlimited ? (
+          <>
+            <View style={styles.roundHeader}>
+              <Text style={type.eyebrow}>{t.tasbihCurrentRound}</Text>
+              <Text style={styles.roundCount}>
+                {progressInRound} <Text style={{ color: colors.textMuted }}>/ {goal}</Text>
+              </Text>
             </View>
-            <Text style={styles.progressText}>
-              {progressInRound} / {goal}
-            </Text>
-          </Pressable>
-        </Animated.View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${(progressInRound / goal) * 100}%` }]} />
+            </View>
+          </>
+        ) : null}
+
+        <View style={styles.statsRow}>
+          <Card style={styles.statCard}>
+            <View style={styles.statIcon}>
+              <RefreshCcw color={colors.accent} size={18} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={type.small}>{t.tasbihRoundsDone}</Text>
+              <Text style={styles.statValue}>
+                {roundsCompleted} {!unlimited ? <Text style={type.small}>{t.tasbihPer.replace('{n}', String(goal))}</Text> : null}
+              </Text>
+            </View>
+          </Card>
+          <Card style={styles.statCard}>
+            <View style={styles.statIcon}>
+              <InfinityIcon color={colors.accent} size={18} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={type.small}>{t.tasbihTotal}</Text>
+              <Text style={styles.statValue}>{total.toLocaleString('ru-RU')}</Text>
+            </View>
+          </Card>
+        </View>
 
         <View style={styles.bottomRow}>
-          <View>
-            <Text style={styles.goal}>
-              {t.tasbihGoal}: {goal} · {t.tasbihRounds}: {roundsCompleted}
-            </Text>
-            <Text style={styles.total}>
-              {t.tasbihTotal}: {total.toLocaleString('ru-RU')}
-            </Text>
+          <View style={styles.segment}>
+            {QUICK_GOALS.map((g) => (
+              <Pressable
+                key={g}
+                onPress={() => setGoal(g)}
+                style={[styles.segmentItem, goal === g && styles.segmentItemActive]}
+                accessibilityRole="button"
+                accessibilityLabel={g === 0 ? t.tasbihNoLimit : String(g)}
+              >
+                {g === 0 ? (
+                  <InfinityIcon color={goal === 0 ? colors.accentDark : colors.textMuted} size={18} />
+                ) : (
+                  <Text style={[styles.segmentText, goal === g && styles.segmentTextActive]}>{g}</Text>
+                )}
+              </Pressable>
+            ))}
           </View>
-          <Pressable onPress={() => setShowResetConfirm(true)} style={styles.reset} accessibilityRole="button">
-            <RotateCcw color={colors.accent} size={18} />
+          <Pressable onPress={() => setShowResetConfirm(true)} style={styles.resetButton} accessibilityRole="button">
+            <RotateCcw color={colors.text} size={17} />
             <Text style={styles.resetText}>{t.tasbihReset}</Text>
           </Pressable>
         </View>
@@ -141,8 +202,9 @@ export default function TasbihScreen() {
         <Text style={styles.modalLabel}>{t.tasbihGoalPerRound}</Text>
         <View style={styles.goalRow}>
           {GOALS.map((g) => (
-            <Chip key={g} label={String(g)} active={goal === g} onPress={() => setSettings((prev) => ({ ...prev, tasbihGoal: g }))} />
+            <Chip key={g} label={String(g)} active={goal === g} onPress={() => setGoal(g)} />
           ))}
+          <Chip label={t.tasbihNoLimit} active={goal === 0} onPress={() => setGoal(0)} />
         </View>
 
         <Text style={styles.modalLabel}>{t.tasbihPhrases}</Text>
@@ -151,7 +213,7 @@ export default function TasbihScreen() {
             <Text style={styles.phraseRowText}>{p}</Text>
             {phrases.length > 1 ? (
               <Pressable onPress={() => removePhrase(index)} hitSlop={10} accessibilityRole="button">
-                <X color="#7890A6" size={16} />
+                <X color={colors.textMuted} size={16} />
               </Pressable>
             ) : null}
           </View>
@@ -162,7 +224,7 @@ export default function TasbihScreen() {
             value={newPhrase}
             onChangeText={setNewPhrase}
             placeholder={t.tasbihAddPhrase}
-            placeholderTextColor="#5A7088"
+            placeholderTextColor={colors.textMutedDark}
             onSubmitEditing={addPhrase}
             returnKeyType="done"
           />
@@ -200,46 +262,51 @@ export default function TasbihScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: 22, paddingBottom: 32 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  eyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 2, fontWeight: '700' },
-  title: { color: colors.text, fontSize: 30, fontWeight: '700', marginTop: 9 },
-  iconButton: { width: 44, height: 44, borderRadius: 15, backgroundColor: '#18344F', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#31506D' },
-  selector: { backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 18, marginTop: 26, alignItems: 'center' },
-  selectorLabel: { color: colors.textMuted, fontSize: 12 },
-  phraseNav: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, width: '100%' },
-  navArrow: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#18344F', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#31506D' },
-  phraseArabic: { color: colors.accentSoft, fontSize: 24, marginBottom: 2 },
-  phrase: { color: '#E9F5DE', fontSize: 19, fontWeight: '700', textAlign: 'center' },
-  dots: { flexDirection: 'row', gap: 7, marginTop: 16, flexWrap: 'wrap', justifyContent: 'center' },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#526B82' },
-  activeDot: { width: 21, backgroundColor: colors.accent },
-  counter: { width: 240, height: 240, borderRadius: 120, backgroundColor: colors.activePrayerBg, borderWidth: 12, borderColor: '#355E65', alignItems: 'center', justifyContent: 'center', marginTop: 34 },
-  counterPressed: { backgroundColor: '#2C6260' },
-  count: { color: '#F4FFF0', fontSize: 62, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  tap: { color: '#AFD1C0', fontSize: 12, marginTop: 2 },
-  progressWrap: { width: 150, height: 4, borderRadius: 2, backgroundColor: '#1A3A3E', marginTop: 12, overflow: 'hidden' },
-  progressBar: { height: 4, borderRadius: 2, backgroundColor: colors.accent },
-  progressText: { color: '#AFD1C0', fontSize: 11, marginTop: 6 },
-  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 34 },
-  goal: { color: '#8FA5B9', fontSize: 13 },
-  total: { color: '#6C8298', fontSize: 12, marginTop: 4 },
-  reset: { flexDirection: 'row', gap: 8, alignItems: 'center', padding: 10 },
-  resetText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
-  hint: { color: colors.textMutedDark, fontSize: 12, lineHeight: 18, marginTop: 22, textAlign: 'center' },
-  modalLabel: { color: colors.textMuted, fontSize: 12, marginBottom: 10, marginTop: 12 },
+  content: { paddingHorizontal: 20, paddingBottom: 32 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 6 },
+  phraseCard: { marginTop: 18, alignItems: 'center', gap: 4 },
+  phraseNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 4 },
+  navArrow: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  dots: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'center', flex: 1 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#3A5670' },
+  activeDot: { width: 22, backgroundColor: colors.accent },
+  phrase: { color: colors.text, fontSize: 22, fontFamily: fonts.semibold, textAlign: 'center' },
+  counterWrap: { alignItems: 'center', marginTop: 28 },
+  ringOuter: { width: 264, height: 264, borderRadius: 132, backgroundColor: colors.cardDeep, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  counter: { width: 212, height: 212, borderRadius: 106, backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: '#2A4866', alignItems: 'center', justifyContent: 'center' },
+  counterPressed: { backgroundColor: colors.activePrayerBg },
+  count: { color: colors.text, fontSize: 64, fontFamily: fonts.bold, fontVariant: ['tabular-nums'] },
+  tap: { color: colors.textMuted, fontSize: 12, letterSpacing: 1.2, fontFamily: fonts.medium, textAlign: 'center', paddingHorizontal: 24 },
+  roundHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, marginBottom: 8 },
+  roundCount: { color: colors.text, fontSize: 18, fontFamily: fonts.semibold, fontVariant: ['tabular-nums'] },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: colors.cardAlt, overflow: 'hidden' },
+  progressFill: { height: 8, borderRadius: 4, backgroundColor: colors.accent },
+  statsRow: { flexDirection: 'row', gap: 12, marginTop: 18 },
+  statCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+  statIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  statValue: { color: colors.text, fontSize: 20, fontFamily: fonts.bold, fontVariant: ['tabular-nums'] },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, gap: 12 },
+  segment: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 4, gap: 4 },
+  segmentItem: { minWidth: 48, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  segmentItemActive: { backgroundColor: colors.accent },
+  segmentText: { color: colors.textMuted, fontSize: 15, fontFamily: fonts.semibold },
+  segmentTextActive: { color: colors.accentDark },
+  resetButton: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, height: 50 },
+  resetText: { color: colors.text, fontSize: 15, fontFamily: fonts.medium },
+  hint: { color: colors.textMutedDark, fontSize: 12, lineHeight: 18, marginTop: 22, textAlign: 'center', fontFamily: fonts.regular },
+  modalLabel: { color: colors.textMuted, fontSize: 12, marginBottom: 10, marginTop: 12, fontFamily: fonts.medium },
   goalRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  phraseRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, backgroundColor: colors.cardAlt, borderRadius: 12, borderWidth: 1, borderColor: '#294765', marginBottom: 8 },
-  phraseRowText: { color: '#D9E4EE', fontSize: 14, flex: 1 },
+  phraseRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, marginBottom: 8 },
+  phraseRowText: { color: colors.text, fontSize: 14, flex: 1, fontFamily: fonts.regular },
   addRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  addInput: { flex: 1, backgroundColor: colors.cardAlt, borderRadius: 12, borderWidth: 1, borderColor: '#294765', paddingVertical: 12, paddingHorizontal: 14, color: colors.text, fontSize: 14 },
+  addInput: { flex: 1, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingVertical: 12, paddingHorizontal: 14, color: colors.text, fontSize: 14, fontFamily: fonts.regular },
   addButton: { width: 48, height: 48, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   confirmOverlay: { flex: 1, backgroundColor: 'rgba(7,21,38,0.85)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-  confirmCard: { backgroundColor: colors.card, borderRadius: 22, padding: 24, borderWidth: 1, borderColor: '#294765', width: '100%', maxWidth: 360 },
-  confirmText: { color: colors.text, fontSize: 17, fontWeight: '600', textAlign: 'center', marginBottom: 20 },
+  confirmCard: { backgroundColor: colors.cardAlt, borderRadius: 22, padding: 24, borderWidth: 1, borderColor: colors.border, width: '100%', maxWidth: 360 },
+  confirmText: { color: colors.text, fontSize: 17, fontFamily: fonts.semibold, textAlign: 'center', marginBottom: 20 },
   confirmRow: { flexDirection: 'row', gap: 10 },
-  confirmCancel: { flex: 1, backgroundColor: colors.cardAlt, borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: '#294765' },
-  confirmCancelText: { color: '#94A9BE', fontWeight: '700', fontSize: 15 },
+  confirmCancel: { flex: 1, backgroundColor: colors.card, borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  confirmCancelText: { color: colors.textMuted, fontFamily: fonts.semibold, fontSize: 15 },
   confirmOk: { flex: 1, backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  confirmOkText: { color: colors.accentDark, fontWeight: '700', fontSize: 15 },
+  confirmOkText: { color: colors.accentDark, fontFamily: fonts.bold, fontSize: 15 },
 });

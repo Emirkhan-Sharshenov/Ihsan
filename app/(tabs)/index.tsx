@@ -1,14 +1,37 @@
 import { useMemo, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { BookOpen, ChevronRight, Clock3, Compass, Heart, Moon, Search, Settings2, Sparkles, Sunrise, TriangleAlert } from 'lucide-react-native';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Coordinates, Qibla } from 'adhan';
+import {
+  ArrowRight,
+  Bell,
+  BellOff,
+  BookOpen,
+  ChevronRight,
+  Clock3,
+  CloudSun,
+  Compass,
+  Heart,
+  Moon,
+  MoonStar,
+  Search,
+  Share2,
+  SlidersHorizontal,
+  Sparkles,
+  Star,
+  Sun,
+  Sunrise,
+  Sunset,
+  TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrayerSettingsSheet } from '@/components/PrayerSettingsSheet';
-import { colors } from '@/constants/theme';
+import { ArabicText, Card, IconButton, Note, Pill, ScreenBackground, ScreenHeader, type } from '@/components/ui';
+import { colors, fonts } from '@/constants/theme';
 import { asmaHusna, nameOfTheDayIndex } from '@/data/asmaHusna';
-import { duas } from '@/data/duas';
-import { hijriMonths, methodName, prayerName } from '@/data/translations';
+import { duas, type Dua } from '@/data/duas';
+import { hijriMonths, methodName, prayerName, type TranslationKeys } from '@/data/translations';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useLocationLabel } from '@/hooks/useLocationLabel';
@@ -17,7 +40,21 @@ import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { useSettings } from '@/hooks/useSettings';
 import { formatDuration, formatGregorian } from '@/lib/dates';
 import { toHijri } from '@/lib/hijri';
-import { formatTime, getCurrentPrayerKey, getNextPrayer, localDateParts, PRAYER_KEYS } from '@/lib/prayerTimes';
+import { shareText } from '@/lib/share';
+import { formatTime, getCurrentPrayerKey, getNextPrayer, localDateParts, PRAYER_KEYS, type PrayerKey } from '@/lib/prayerTimes';
+
+const PRAYER_ICONS: Record<PrayerKey, LucideIcon> = {
+  fajr: Moon,
+  sunrise: Sunrise,
+  dhuhr: Sun,
+  asr: CloudSun,
+  maghrib: Sunset,
+  isha: MoonStar,
+};
+
+function duaShareText(item: Dua, t: TranslationKeys): string {
+  return [item.title, item.arabic, item.transliteration, item.translation, `${t.duasSource}: ${item.source}`].join('\n\n');
+}
 
 export default function HomeScreen() {
   const { t, lang } = useLanguage();
@@ -26,7 +63,7 @@ export default function HomeScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { favorites, toggleFavorite } = useFavorites();
-  const [settings] = useSettings();
+  const [settings, setSettings] = useSettings();
   const prayer = usePrayerTimes();
   const placeLabel = useLocationLabel();
   const now = useNow(30000);
@@ -38,17 +75,18 @@ export default function HomeScreen() {
   const next = getNextPrayer(prayer.days, now);
   const current = today ? getCurrentPrayerKey(today, now) : null;
   const isRamadan = hijri.month === 9;
+  const qibla = prayer.location ? Math.round(Qibla(new Coordinates(prayer.location.lat, prayer.location.lon))) : null;
 
   const dayIndex = nameOfTheDayIndex();
   const nameOfDay = asmaHusna[dayIndex];
   const duaOfTheDay = useMemo(() => duas[dayIndex % duas.length], [dayIndex]);
   const isFavorite = favorites.includes(duaOfTheDay.slug);
 
-  const quickLinks = [
-    { title: t.tabQuran, subtitle: t.homeQuranSubtitle, icon: BookOpen, color: '#D7F3BE', href: '/quran' as const },
-    { title: t.tabDuas, subtitle: t.homeDuasSubtitle, icon: Heart, color: '#D7F3BE', href: '/duas' as const },
-    { title: t.tabTasbih, subtitle: t.homeTasbihSubtitle, icon: Sparkles, color: '#BCE6F8', href: '/tasbih' as const },
-    { title: t.tabQibla, subtitle: t.homeQiblaSubtitle, icon: Compass, color: '#BCE6F8', href: '/qibla' as const },
+  const tiles = [
+    { title: t.tabQuran, subtitle: t.quranCount, icon: BookOpen, href: '/quran' as const },
+    { title: t.tabDuas, subtitle: t.homeDuasSubtitle, icon: Sparkles, href: '/duas' as const },
+    { title: t.tabTasbih, subtitle: t.homeTasbihSubtitle, icon: Clock3, href: '/tasbih' as const },
+    { title: t.tabQibla, subtitle: qibla !== null ? t.homeQiblaTile.replace('{deg}', String(qibla)) : t.homeQiblaSubtitle, icon: Compass, href: '/qibla' as const },
   ];
 
   const handleRefresh = async () => {
@@ -57,91 +95,128 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  const handleSearchSubmit = () => {
-    if (query.trim()) router.push({ pathname: '/duas', params: { q: query.trim() } });
+  const togglePrayerBell = (key: PrayerKey) => {
+    if (!settings.notificationsEnabled) {
+      Alert.alert(t.settingsNotifications, t.notifyTurnOnHint, [{ text: t.done, onPress: () => setShowSettings(true) }]);
+      return;
+    }
+    setSettings((prev) => ({
+      ...prev,
+      mutedPrayers: prev.mutedPrayers.includes(key) ? prev.mutedPrayers.filter((k) => k !== key) : [...prev.mutedPrayers, key],
+    }));
   };
 
   const sourceLabel = prayer.official ? t.homeSourceOfficial : methodName(t, prayer.method);
 
   return (
     <View style={styles.screen}>
-      <LinearGradient colors={['#0D2945', colors.bg]} style={StyleSheet.absoluteFill} />
+      <ScreenBackground />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
       >
-        <Text style={styles.eyebrow}>{t.homeEyebrow}</Text>
-        <Text style={styles.greeting}>{t.homeGreeting}</Text>
-        <Text style={styles.date}>
-          {formatGregorian(lang, todayParts.year, todayParts.month, todayParts.day)}
-          {' · '}
-          {hijri.day} {hijriMonths[lang][hijri.month - 1]} {hijri.year} {t.homeHijriSuffix}
+        <ScreenHeader
+          title={t.tabHome}
+          right={
+            <IconButton label={t.settingsTitle} onPress={() => setShowSettings(true)} active={settings.notificationsEnabled}>
+              <Bell color={settings.notificationsEnabled ? colors.accent : colors.text} size={20} />
+            </IconButton>
+          }
+        />
+
+        <Text style={type.eyebrow}>{t.homeEyebrow}</Text>
+        <Text style={[type.display, styles.greeting]}>{t.homeGreeting}</Text>
+        <Text style={type.muted}>
+          {formatGregorian(lang, todayParts.year, todayParts.month, todayParts.day)} · {hijri.day} {hijriMonths[lang][hijri.month - 1]} {hijri.year} {t.homeHijriSuffix}
         </Text>
 
         <View style={styles.searchBox}>
-          <Search color="#96A9BE" size={20} />
+          <Search color={colors.textMuted} size={20} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder={t.homeSearchPlaceholder}
-            placeholderTextColor="#8EA1B5"
+            placeholderTextColor={colors.textMuted}
             style={styles.searchInput}
-            onSubmitEditing={handleSearchSubmit}
+            onSubmitEditing={() => query.trim() && router.push({ pathname: '/duas', params: { q: query.trim() } })}
             returnKeyType="search"
           />
         </View>
 
         <View style={styles.sectionHeading}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>{t.homePrayerToday}</Text>
-            <Text style={styles.sectionCaption} numberOfLines={2}>
+            <Text style={type.headline}>{t.homePrayerToday}</Text>
+            <Text style={[type.small, { marginTop: 2 }]} numberOfLines={2}>
               {placeLabel} · {sourceLabel}
             </Text>
           </View>
-          <Pressable onPress={() => setShowSettings(true)} style={styles.settingsButton} hitSlop={8} accessibilityRole="button">
-            <Settings2 color={colors.accent} size={16} />
+          <Pressable onPress={() => setShowSettings(true)} style={styles.linkButton} hitSlop={8} accessibilityRole="button">
             <Text style={styles.linkText}>{t.homeSettingsLink}</Text>
+            <SlidersHorizontal color={colors.accent} size={16} />
           </Pressable>
         </View>
 
         {prayer.error === 'gps' ? (
-          <Notice text={t.homeGpsError} />
+          <Note icon={<TriangleAlert color={colors.warnText} size={16} />} text={t.homeGpsError} style={styles.warn} />
         ) : prayer.error === 'network' ? (
-          <Notice text={t.homeNetworkError} />
+          <Note icon={<TriangleAlert color={colors.warnText} size={16} />} text={t.homeNetworkError} style={styles.warn} />
         ) : null}
 
-        {prayer.loading && !today ? (
-          <View style={styles.infoBar}>
-            <Text style={styles.infoBarText}>{t.homeLocating}</Text>
-          </View>
-        ) : next ? (
-          <View style={styles.infoBar}>
+        <Card style={styles.prayerCard}>
+          <View style={styles.nextBar}>
             <Clock3 color={colors.accent} size={16} />
-            <Text style={styles.countdownText}>
-              {t.homeCountdown.replace('{name}', prayerName(t, next.key)).replace('{time}', formatDuration(next.time - now, t.hoursShort, t.minutesShort))}
-            </Text>
-          </View>
-        ) : null}
-
-        {today ? (
-          <View style={styles.prayerCard}>
-            {PRAYER_KEYS.map((key) => {
-              const active = key === current && key !== 'sunrise';
-              const isSunrise = key === 'sunrise';
-              return (
-                <View key={key} style={[styles.prayerRow, active && styles.activePrayer]}>
-                  {isSunrise ? <Sunrise color="#71869D" size={15} style={styles.prayerIcon} /> : <View style={[styles.prayerMark, active && styles.activeMark]} />}
-                  <Text style={[styles.prayerName, isSunrise && styles.sunriseText, active && styles.activePrayerText]}>{prayerName(t, key)}</Text>
-                  <Text style={[styles.prayerTime, isSunrise && styles.sunriseText, active && styles.activePrayerText]}>
-                    {formatTime(today.times[key], offset)}
+            <Text style={styles.nextText} numberOfLines={2}>
+              {prayer.loading && !today ? (
+                t.homeLocating
+              ) : next ? (
+                <>
+                  {t.homeNext}{' '}
+                  <Text style={{ color: colors.accent }}>
+                    {t.homeCountdown.replace('{name}', prayerName(t, next.key)).replace('{time}', formatDuration(next.time - now, t.hoursShort, t.minutesShort))}
                   </Text>
-                </View>
-              );
-            })}
+                </>
+              ) : null}
+            </Text>
+            <Text style={styles.madhabChip}>{(settings.madhab === 'hanafi' ? t.madhabShortHanafi : t.madhabShortShafi).toUpperCase()}</Text>
           </View>
-        ) : null}
+
+          {today
+            ? PRAYER_KEYS.map((key) => {
+                const Icon = PRAYER_ICONS[key];
+                const isSunrise = key === 'sunrise';
+                const active = key === current && !isSunrise;
+                const muted = settings.mutedPrayers.includes(key);
+                const bellOn = settings.notificationsEnabled && !muted;
+                return (
+                  <View key={key} style={[styles.prayerRow, active && styles.prayerRowActive]}>
+                    {active ? <View style={styles.activeDot} /> : <Icon color={isSunrise ? colors.textMutedDark : '#B4C3D2'} size={18} />}
+                    <Text style={[styles.prayerName, isSunrise && styles.sunriseText, active && styles.prayerNameActive]}>{prayerName(t, key)}</Text>
+                    {active ? <Pill label={t.homeNow} style={styles.nowPill} /> : null}
+                    <View style={{ flex: 1 }} />
+                    <Text style={[styles.prayerTime, isSunrise && styles.sunriseText, active && styles.prayerTimeActive]}>{formatTime(today.times[key], offset)}</Text>
+                    {isSunrise ? (
+                      <View style={styles.bell}>
+                        <BellOff color={colors.textMutedDark} size={16} />
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => togglePrayerBell(key)}
+                        hitSlop={8}
+                        style={styles.bell}
+                        accessibilityRole="switch"
+                        accessibilityState={{ checked: bellOn }}
+                        accessibilityLabel={`${t.notifyMuteHint}: ${prayerName(t, key)}`}
+                      >
+                        {bellOn ? <Bell color={active ? colors.accent : '#B4C3D2'} size={17} /> : <BellOff color={colors.textMutedDark} size={17} />}
+                      </Pressable>
+                    )}
+                  </View>
+                );
+              })
+            : null}
+        </Card>
 
         {today && isRamadan ? (
           <View style={styles.ramadanCard}>
@@ -152,53 +227,75 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>{t.homeQuickAccess}</Text>
-        </View>
-        <View style={styles.categoryRow}>
-          {quickLinks.map((item) => {
-            const Icon = item.icon;
+        <View style={styles.tiles}>
+          {tiles.map((tile) => {
+            const Icon = tile.icon;
             return (
-              <Pressable key={item.href} style={({ pressed }) => [styles.categoryCard, pressed && styles.cardPressed]} onPress={() => router.push(item.href)}>
-                <View style={[styles.categoryIcon, { backgroundColor: item.color }]}>
-                  <Icon color="#112A42" size={20} strokeWidth={2.2} />
+              <Pressable key={tile.href} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} onPress={() => router.push(tile.href)}>
+                <View style={styles.tileTop}>
+                  <View style={styles.tileIcon}>
+                    <Icon color={colors.accent} size={20} />
+                  </View>
+                  <ArrowRight color={colors.textMuted} size={18} />
                 </View>
-                <Text style={styles.categoryTitle}>{item.title}</Text>
-                <Text style={styles.categorySubtitle}>{item.subtitle}</Text>
+                <Text style={styles.tileTitle}>{tile.title}</Text>
+                <Text style={type.small}>{tile.subtitle}</Text>
               </Pressable>
             );
           })}
         </View>
 
-        <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>{t.homeDuaOfDay}</Text>
-          <Pressable onPress={() => toggleFavorite(duaOfTheDay.slug)} style={styles.likeButton} hitSlop={8} accessibilityRole="button">
-            <Heart color={isFavorite ? colors.heart : '#9BAEC1'} fill={isFavorite ? colors.heart : 'transparent'} size={18} />
-          </Pressable>
-        </View>
-        <Pressable
-          style={({ pressed }) => [styles.quoteCard, pressed && styles.quotePressed]}
-          onPress={() => router.push({ pathname: '/duas', params: { open: duaOfTheDay.slug } })}
-        >
-          <Text style={styles.quoteTitle}>{duaOfTheDay.title}</Text>
-          <Text style={styles.quoteArabic} numberOfLines={3}>
-            {duaOfTheDay.arabic.split('\n\n')[0]}
-          </Text>
-          <Text style={styles.quoteTranslation} numberOfLines={4}>
-            {duaOfTheDay.translation.split('\n\n')[0]}
-          </Text>
-          <Text style={styles.quoteSource}>{duaOfTheDay.source}</Text>
-        </Pressable>
-
-        <Pressable style={({ pressed }) => [styles.asmaCard, pressed && styles.quotePressed]} onPress={() => router.push('/asma')}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.asmaLabel}>{t.homeAsmaCardTitle}</Text>
-            <Text style={styles.asmaName}>
-              {nameOfDay.transliteration} · {nameOfDay.ru}
-            </Text>
+        <Card style={styles.duaCard}>
+          <View style={styles.duaHeader}>
+            <View style={styles.accentBar} />
+            <Text style={[type.headline, { flex: 1 }]}>{t.homeDuaOfDay}</Text>
+            <IconButton label={t.duasFavorites} onPress={() => toggleFavorite(duaOfTheDay.slug)} style={styles.smallIconButton}>
+              <Heart color={isFavorite ? colors.heart : colors.text} fill={isFavorite ? colors.heart : 'transparent'} size={18} />
+            </IconButton>
           </View>
-          <Text style={styles.asmaArabic}>{nameOfDay.arabic}</Text>
-          <ChevronRight color={colors.accentDark} size={20} />
+          <Pressable onPress={() => router.push({ pathname: '/duas', params: { open: duaOfTheDay.slug } })}>
+            <Text style={[type.small, { marginBottom: 4 }]}>{duaOfTheDay.title}</Text>
+            <ArabicText size={24} numberOfLines={4}>
+              {duaOfTheDay.arabic.split('\n\n')[0]}
+            </ArabicText>
+            <Text style={[type.body, styles.duaTranslation]} numberOfLines={5}>
+              {duaOfTheDay.translation.split('\n\n')[0]}
+            </Text>
+          </Pressable>
+          <View style={styles.duaFooter}>
+            <View style={styles.sourceTag}>
+              <Text style={styles.sourceTagText} numberOfLines={1}>
+                {duaOfTheDay.source}
+              </Text>
+            </View>
+            <Pressable onPress={() => shareText(duaShareText(duaOfTheDay, t))} style={styles.shareLink} hitSlop={8} accessibilityRole="button">
+              <Text style={type.small}>{t.homeShare}</Text>
+              <Share2 color={colors.textMuted} size={15} />
+            </Pressable>
+          </View>
+        </Card>
+
+        <Pressable onPress={() => router.push('/asma')} style={({ pressed }) => [pressed && styles.pressed]}>
+          <Card style={styles.asmaCard}>
+            <View style={styles.asmaHeader}>
+              <Star color={colors.accent} size={18} />
+              <Text style={[type.title, { flex: 1 }]}>{t.homeAsmaCardTitle}</Text>
+              <Text style={type.small}>{t.asmaOf.replace('{n}', String(nameOfDay.number))}</Text>
+            </View>
+            <View style={styles.asmaNameRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.asmaName}>{nameOfDay.transliteration}</Text>
+                <Text style={type.muted}>{nameOfDay.ru}</Text>
+              </View>
+              <ArabicText size={26} style={{ color: colors.accent }}>
+                {nameOfDay.arabic}
+              </ArabicText>
+            </View>
+            <View style={styles.asmaLink}>
+              <Text style={styles.linkText}>{t.homeAllNames}</Text>
+              <ChevronRight color={colors.accent} size={16} />
+            </View>
+          </Card>
         </Pressable>
       </ScrollView>
 
@@ -207,60 +304,50 @@ export default function HomeScreen() {
   );
 }
 
-function Notice({ text }: { text: string }) {
-  return (
-    <View style={styles.errorBar}>
-      <TriangleAlert color="#F0C96B" size={15} />
-      <Text style={styles.errorText}>{text}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: 22, paddingBottom: 32 },
-  eyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 2, fontWeight: '700' },
-  greeting: { color: colors.text, fontSize: 29, fontWeight: '700', marginTop: 8 },
-  date: { color: '#94A9BE', fontSize: 13, marginTop: 6, lineHeight: 19 },
-  searchBox: { marginTop: 22, height: 50, borderRadius: 18, backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: '#294765', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 17 },
-  searchInput: { flex: 1, color: colors.text, marginLeft: 11, fontSize: 14 },
+  content: { paddingHorizontal: 20, paddingBottom: 32 },
+  greeting: { marginTop: 6, marginBottom: 4 },
+  searchBox: { marginTop: 18, height: 52, borderRadius: 16, backgroundColor: colors.cardAlt, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
+  searchInput: { flex: 1, color: colors.text, marginLeft: 12, fontSize: 15, fontFamily: fonts.regular },
   sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 12, gap: 10 },
-  sectionTitle: { color: colors.text, fontSize: 19, fontWeight: '700' },
-  sectionCaption: { color: colors.textMuted, fontSize: 12, marginTop: 4 },
-  settingsButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6 },
-  linkText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
-  errorBar: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: '#3A2E1A', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 10 },
-  errorText: { color: '#E8CE9A', fontSize: 12, flex: 1, lineHeight: 17 },
-  infoBar: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#1A3A52', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 10 },
-  infoBarText: { color: colors.textMuted, fontSize: 13 },
-  countdownText: { color: colors.accent, fontSize: 13, fontWeight: '600', flex: 1 },
-  prayerCard: { backgroundColor: colors.card, borderRadius: 20, paddingVertical: 7, borderWidth: 1, borderColor: colors.border },
-  prayerRow: { height: 44, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderRadius: 14, marginHorizontal: 7 },
-  activePrayer: { backgroundColor: colors.activePrayerBg },
-  prayerMark: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#50677D', marginRight: 12, marginLeft: 4 },
-  prayerIcon: { marginRight: 8 },
-  activeMark: { backgroundColor: colors.accent },
-  prayerName: { flex: 1, color: '#B4C3D2', fontSize: 15 },
-  prayerTime: { color: '#EAF2F8', fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  sunriseText: { color: '#71869D', fontWeight: '500' },
-  activePrayerText: { color: '#F4FFF0' },
-  ramadanCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.accentSoft, borderRadius: 14, padding: 12, marginTop: 10 },
-  ramadanText: { color: colors.accentDark, fontSize: 14, fontWeight: '700' },
-  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  categoryCard: { width: '48%', flexGrow: 1, backgroundColor: colors.card, borderRadius: 18, padding: 12, borderWidth: 1, borderColor: colors.border },
-  cardPressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
-  categoryIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  categoryTitle: { color: colors.text, fontWeight: '700', fontSize: 14 },
-  categorySubtitle: { color: '#8298AE', fontSize: 11, marginTop: 3 },
-  likeButton: { padding: 8, backgroundColor: colors.card, borderRadius: 12 },
-  quoteCard: { backgroundColor: colors.quoteCard, borderRadius: 22, padding: 20, alignItems: 'center' },
-  quotePressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
-  quoteTitle: { color: colors.quoteMuted, fontSize: 12, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
-  quoteArabic: { color: colors.quoteText, fontSize: 22, lineHeight: 38, textAlign: 'center', writingDirection: 'rtl' },
-  quoteTranslation: { color: '#30485B', fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 12, lineHeight: 20 },
-  quoteSource: { color: colors.quoteMuted, fontSize: 12, marginTop: 9, textAlign: 'center' },
-  asmaCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.accent, borderRadius: 18, padding: 16, marginTop: 12 },
-  asmaLabel: { color: '#254024', fontSize: 11, fontWeight: '700' },
-  asmaName: { color: colors.accentDark, fontSize: 14, fontWeight: '700', marginTop: 3 },
-  asmaArabic: { color: colors.accentDark, fontSize: 20 },
+  linkButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6 },
+  linkText: { color: colors.accent, fontSize: 13, fontFamily: fonts.semibold },
+  warn: { backgroundColor: colors.warnBg, borderColor: colors.warnBg, marginBottom: 10 },
+  prayerCard: { padding: 10 },
+  nextBar: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.cardAlt, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 6 },
+  nextText: { color: colors.text, fontSize: 13, fontFamily: fonts.medium, flex: 1 },
+  madhabChip: { color: colors.textMuted, fontSize: 10, letterSpacing: 0.8, fontFamily: fonts.semibold },
+  prayerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 46, paddingHorizontal: 10, borderRadius: 12 },
+  prayerRowActive: { backgroundColor: colors.activePrayerBg, height: 52, borderLeftWidth: 3, borderLeftColor: colors.accent },
+  activeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, marginHorizontal: 5 },
+  prayerName: { color: '#D2DDE8', fontSize: 15, fontFamily: fonts.regular },
+  prayerNameActive: { color: colors.text, fontSize: 17, fontFamily: fonts.semibold },
+  nowPill: { alignSelf: 'center' },
+  prayerTime: { color: colors.text, fontSize: 15, fontFamily: fonts.semibold, fontVariant: ['tabular-nums'] },
+  prayerTimeActive: { fontSize: 17, fontFamily: fonts.bold },
+  sunriseText: { color: colors.textMutedDark },
+  bell: { width: 28, alignItems: 'center' },
+  ramadanCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.accent, borderRadius: 14, padding: 12, marginTop: 10 },
+  ramadanText: { color: colors.accentDark, fontSize: 14, fontFamily: fonts.semibold },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 20 },
+  tile: { width: '47%', flexGrow: 1, backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 14 },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  tileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  tileIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  tileTitle: { color: colors.text, fontSize: 18, fontFamily: fonts.semibold, marginBottom: 2 },
+  duaCard: { marginTop: 20 },
+  duaHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  accentBar: { width: 4, height: 20, borderRadius: 2, backgroundColor: colors.accent },
+  smallIconButton: { width: 38, height: 38, borderRadius: 12 },
+  duaTranslation: { color: '#D2DDE8', marginTop: 10 },
+  duaFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, gap: 12 },
+  sourceTag: { flexShrink: 1, backgroundColor: colors.accentMuted, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  sourceTagText: { color: colors.accent, fontSize: 11, fontFamily: fonts.semibold },
+  shareLink: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  asmaCard: { marginTop: 16 },
+  asmaHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  asmaNameRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  asmaName: { color: colors.text, fontSize: 24, fontFamily: fonts.bold, marginBottom: 2 },
+  asmaLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12 },
 });

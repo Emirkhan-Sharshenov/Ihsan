@@ -1,22 +1,28 @@
 import { useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
-import { BookOpen, ChevronRight, Clock3, Globe, Heart, Info, ShieldCheck, Sparkles } from 'lucide-react-native';
+import { BellRing, Bookmark, BookOpen, ChevronRight, Heart, Info, Languages, Share2, ShieldCheck, Sparkles, Star, type LucideIcon } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrayerSettingsSheet } from '@/components/PrayerSettingsSheet';
-import { BottomSheet, PrimaryButton } from '@/components/ui';
-import { colors } from '@/constants/theme';
+import { BottomSheet, Card, Pill, PrimaryButton, ScreenBackground, ScreenHeader, type } from '@/components/ui';
+import { colors, fonts } from '@/constants/theme';
 import { duas } from '@/data/duas';
 import { surahs } from '@/data/surahs';
+import { methodName } from '@/data/translations';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useLocationLabel } from '@/hooks/useLocationLabel';
+import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { useSurahFavorites } from '@/hooks/useQuranSurahs';
+import { useSettings } from '@/hooks/useSettings';
 import { useTasbihCount } from '@/hooks/useTasbihCount';
+import { shareText } from '@/lib/share';
 
 type Sheet = 'duas' | 'surahs' | 'language' | 'prayer' | null;
+type Row = { label: string; subtitle?: string; icon: LucideIcon; iconColor?: string; onPress: () => void; badge?: string; value?: string };
+
+const PLAY_URL = 'https://play.google.com/store/apps/details?id=kg.emirkhan.ihsan';
 
 export default function ProfileScreen() {
   const { t, lang, setLang } = useLanguage();
@@ -25,62 +31,72 @@ export default function ProfileScreen() {
   const { favorites, toggleFavorite } = useFavorites();
   const { favorites: favoriteSurahNumbers, toggleFavorite: toggleSurahFavorite } = useSurahFavorites();
   const { total } = useTasbihCount();
+  const [settings] = useSettings();
+  const { method, official } = usePrayerTimes();
   const placeLabel = useLocationLabel();
 
   const favoriteDuas = duas.filter((d) => favorites.includes(d.slug));
   const favoriteSurahs = surahs.filter((s) => favoriteSurahNumbers.includes(s.number));
+  const madhabShort = settings.madhab === 'hanafi' ? t.madhabShortHanafi : t.madhabShortShafi;
 
-  const rows: { label: string; icon: typeof Heart; onPress: () => void; badge?: string }[] = [
-    { label: t.profilePrayerSettingsRow, icon: Clock3, onPress: () => setSheet('prayer'), badge: placeLabel },
-    { label: t.profileFavDuasRow, icon: Heart, onPress: () => setSheet('duas'), badge: favoriteDuas.length ? String(favoriteDuas.length) : undefined },
-    { label: t.profileFavSurahsRow, icon: BookOpen, onPress: () => setSheet('surahs'), badge: favoriteSurahs.length ? String(favoriteSurahs.length) : undefined },
-    { label: t.profileAsmaRow, icon: Sparkles, onPress: () => router.push('/asma') },
-    { label: t.profileLanguage, icon: Globe, onPress: () => setSheet('language'), badge: lang === 'ky' ? t.languageKy : t.languageRu },
-    { label: t.profileAbout, icon: Info, onPress: () => router.push('/about') },
-    { label: t.profilePrivacy, icon: ShieldCheck, onPress: () => router.push({ pathname: '/about', params: { section: 'privacy' } }) },
+  const settingsRows: Row[] = [
+    {
+      label: t.profilePrayerSettingsRow,
+      subtitle: `${placeLabel} · ${official ? t.homeSourceOfficial : methodName(t, method)} · ${madhabShort}`,
+      icon: BellRing,
+      iconColor: colors.accent,
+      onPress: () => setSheet('prayer'),
+    },
+    { label: t.profileFavDuasRow, icon: Heart, iconColor: colors.heart, onPress: () => setSheet('duas'), badge: favoriteDuas.length ? String(favoriteDuas.length) : undefined },
+    { label: t.profileFavSurahsRow, icon: Bookmark, onPress: () => setSheet('surahs'), badge: favoriteSurahs.length ? String(favoriteSurahs.length) : undefined },
+    { label: t.profileAsmaRow, subtitle: t.profileAsmaSub, icon: Sparkles, onPress: () => router.push('/asma') },
+    { label: t.profileLanguage, icon: Languages, onPress: () => setSheet('language'), value: lang === 'ky' ? t.languageKy : t.languageRu },
+  ];
+  const projectRows: Row[] = [
+    { label: t.profileAbout, subtitle: t.profileAboutSub, icon: Info, onPress: () => router.push('/about') },
+    { label: t.profilePrivacy, subtitle: t.profilePrivacySub, icon: ShieldCheck, onPress: () => router.push({ pathname: '/about', params: { section: 'privacy' } }) },
   ];
 
   return (
     <View style={styles.screen}>
-      <LinearGradient colors={['#102D49', colors.bg]} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]} showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>{t.profileEyebrow}</Text>
-        <Text style={styles.title}>{t.profileTitle}</Text>
-        <View style={styles.profileCard}>
-          <Text style={styles.greeting}>{t.profileGreeting}</Text>
-        </View>
+      <ScreenBackground />
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]} showsVerticalScrollIndicator={false}>
+        <ScreenHeader title={t.profileTitle} />
+
+        <Card style={styles.blessingCard}>
+          <Pill label={`★ ${t.profileBlessingBadge}`} />
+          <Text style={styles.blessingTitle}>{t.profileGreeting}</Text>
+          <Text style={type.muted}>{t.profileBlessingText}</Text>
+        </Card>
 
         <View style={styles.statsRow}>
-          <Stat value={favoriteDuas.length} label={t.profileFavDuas} />
-          <Stat value={favoriteSurahs.length} label={t.profileFavSurahs} />
-          <Stat value={total} label={t.profileTasbihTotal} />
+          <Stat icon={Heart} iconColor={colors.heart} value={favoriteDuas.length} label={t.profileFavDuas} />
+          <Stat icon={BookOpen} value={favoriteSurahs.length} label={t.profileFavSurahs} />
+          <Stat icon={Star} value={total} label={t.profileTasbihTotal} />
         </View>
 
-        <Text style={styles.section}>{t.profileSection}</Text>
-        {rows.map(({ label, icon: Icon, onPress, badge }) => (
-          <Pressable key={label} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} onPress={onPress} accessibilityRole="button">
-            <View style={styles.icon}>
-              <Icon color={colors.accent} size={18} />
-            </View>
-            <Text style={styles.label}>{label}</Text>
-            {badge ? (
-              <Text style={styles.badgeText} numberOfLines={1}>
-                {badge}
-              </Text>
-            ) : null}
-            <ChevronRight color="#7890A6" size={18} />
-          </Pressable>
-        ))}
+        <Text style={styles.section}>{t.profileSettingsSection}</Text>
+        <RowGroup rows={settingsRows} />
+
+        <Text style={styles.section}>{t.profileProjectSection}</Text>
+        <RowGroup rows={projectRows} />
+
+        <PrimaryButton
+          label={t.profileShare}
+          onPress={() => shareText(`${t.shareAppText}\n${PLAY_URL}`)}
+          icon={<Share2 color={colors.accentDark} size={18} />}
+          style={{ marginTop: 24 }}
+        />
 
         <Text style={styles.version}>
-          {t.profileVersion} {Constants.expoConfig?.version ?? '1.0.0'}
+          {'Ихсан'} · {t.profileVersion} {Constants.expoConfig?.version ?? '1.0.0'}
         </Text>
       </ScrollView>
 
       <PrayerSettingsSheet visible={sheet === 'prayer'} onClose={() => setSheet(null)} />
 
       <BottomSheet visible={sheet === 'duas'} title={t.profileFavDuasRow} onClose={() => setSheet(null)}>
-        {favoriteDuas.length === 0 ? <Text style={styles.emptyText}>{t.profileEmptyFavorites}</Text> : null}
+        {favoriteDuas.length === 0 ? <Text style={[type.muted, { marginBottom: 6 }]}>{t.profileEmptyFavorites}</Text> : null}
         {favoriteDuas.map((d) => (
           <Pressable
             key={d.slug}
@@ -106,7 +122,7 @@ export default function ProfileScreen() {
       </BottomSheet>
 
       <BottomSheet visible={sheet === 'surahs'} title={t.profileFavSurahsRow} onClose={() => setSheet(null)}>
-        {favoriteSurahs.length === 0 ? <Text style={styles.emptyText}>{t.profileEmptyFavSurahs}</Text> : null}
+        {favoriteSurahs.length === 0 ? <Text style={[type.muted, { marginBottom: 6 }]}>{t.profileEmptyFavSurahs}</Text> : null}
         {favoriteSurahs.map((s) => (
           <View key={s.number} style={styles.favRow}>
             <Text style={styles.favTitle}>
@@ -114,7 +130,7 @@ export default function ProfileScreen() {
               {lang === 'ru' ? ` · ${s.nameRu}` : ''}
             </Text>
             <Pressable onPress={() => toggleSurahFavorite(s.number)} hitSlop={10}>
-              <BookOpen color={colors.accent} size={18} />
+              <Heart color={colors.heart} fill={colors.heart} size={18} />
             </Pressable>
           </View>
         ))}
@@ -146,38 +162,76 @@ export default function ProfileScreen() {
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ icon: Icon, iconColor = colors.textMuted, value, label }: { icon: LucideIcon; iconColor?: string; value: number; label: string }) {
   return (
-    <View style={styles.statCard}>
+    <Card style={styles.statCard}>
+      <View style={styles.statIcon}>
+        <Icon color={iconColor} size={16} />
+      </View>
       <Text style={styles.statNumber}>{value.toLocaleString('ru-RU')}</Text>
       <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    </Card>
+  );
+}
+
+function RowGroup({ rows }: { rows: Row[] }) {
+  return (
+    <Card style={styles.group}>
+      {rows.map(({ label, subtitle, icon: Icon, iconColor, onPress, badge, value }, i) => (
+        <Pressable
+          key={label}
+          style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && { backgroundColor: colors.cardAlt }]}
+          onPress={onPress}
+          accessibilityRole="button"
+        >
+          <View style={styles.rowIcon}>
+            <Icon color={iconColor ?? colors.text} size={19} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowLabel}>{label}</Text>
+            {subtitle ? (
+              <Text style={type.small} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+          {badge ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{badge}</Text>
+            </View>
+          ) : null}
+          {value ? <Text style={type.muted}>{value}</Text> : null}
+          <ChevronRight color={colors.textMuted} size={18} />
+        </Pressable>
+      ))}
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: 22, paddingBottom: 32 },
-  eyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 2, fontWeight: '700' },
-  title: { color: colors.text, fontSize: 30, fontWeight: '700', marginTop: 9 },
-  profileCard: { backgroundColor: colors.card, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: '#294765', marginTop: 22 },
-  greeting: { color: colors.text, fontSize: 16, fontWeight: '600', lineHeight: 22 },
-  statsRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  statCard: { flex: 1, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, alignItems: 'center' },
-  statNumber: { color: colors.accent, fontSize: 22, fontWeight: '700' },
-  statLabel: { color: '#8298AE', fontSize: 11, marginTop: 4, textAlign: 'center' },
-  section: { color: colors.text, fontSize: 19, fontWeight: '700', marginTop: 28, marginBottom: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 17, borderWidth: 1, borderColor: colors.border, padding: 13, marginBottom: 9 },
-  icon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#1D3C54', alignItems: 'center', justifyContent: 'center' },
-  label: { flex: 1, color: '#D9E4EE', fontSize: 14, marginLeft: 12 },
-  badgeText: { color: colors.accent, fontSize: 12, fontWeight: '600', marginHorizontal: 8, maxWidth: 110 },
-  version: { color: colors.textMutedDark, fontSize: 12, textAlign: 'center', marginTop: 18 },
-  emptyText: { color: colors.textMuted, fontSize: 14, lineHeight: 20, marginBottom: 6 },
+  content: { paddingHorizontal: 20, paddingBottom: 32 },
+  blessingCard: { gap: 10, padding: 20 },
+  blessingTitle: { color: colors.text, fontSize: 24, lineHeight: 30, fontFamily: fonts.semibold },
+  statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  statCard: { flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 8, gap: 4 },
+  statIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  statNumber: { color: colors.accent, fontSize: 22, fontFamily: fonts.bold, fontVariant: ['tabular-nums'] },
+  statLabel: { color: colors.textMuted, fontSize: 11, textAlign: 'center', fontFamily: fonts.regular },
+  section: { color: colors.text, fontSize: 16, fontFamily: fonts.medium, marginTop: 26, marginBottom: 10, marginLeft: 4 },
+  group: { padding: 0, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
+  rowDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  rowIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  rowLabel: { color: colors.text, fontSize: 15, fontFamily: fonts.medium },
+  badge: { minWidth: 24, height: 24, borderRadius: 12, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  badgeText: { color: colors.text, fontSize: 12, fontFamily: fonts.semibold },
+  version: { color: colors.textMutedDark, fontSize: 12, textAlign: 'center', marginTop: 18, fontFamily: fonts.regular },
   favRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 12 },
-  favTitle: { color: colors.text, fontSize: 15, fontWeight: '600', flex: 1 },
-  langRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 14, backgroundColor: colors.cardAlt, borderRadius: 14, borderWidth: 1, borderColor: '#294765', marginBottom: 10 },
-  activeLangRow: { backgroundColor: '#1A3D2E', borderColor: colors.accent },
-  langText: { color: '#D9E4EE', fontSize: 16 },
-  activeLangText: { color: colors.accent, fontWeight: '700' },
-  langCheck: { color: colors.accent, fontSize: 18, fontWeight: '700' },
+  favTitle: { color: colors.text, fontSize: 15, fontFamily: fonts.medium, flex: 1 },
+  langRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 14, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
+  activeLangRow: { backgroundColor: colors.accentMuted, borderColor: colors.accent },
+  langText: { color: colors.text, fontSize: 16, fontFamily: fonts.regular },
+  activeLangText: { color: colors.accent, fontFamily: fonts.semibold },
+  langCheck: { color: colors.accent, fontSize: 18, fontFamily: fonts.bold },
 });

@@ -1,7 +1,7 @@
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LocateFixed, Minus, Plus } from 'lucide-react-native';
 import { BottomSheet, Chip, PrimaryButton, Toggle } from './ui';
-import { colors } from '@/constants/theme';
+import { colors, fonts } from '@/constants/theme';
 import { cities, GPS_CITY, type CalcMethodId } from '@/data/cities';
 import { methodName, prayerName } from '@/data/translations';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -141,17 +141,17 @@ function Stepper({ value, onMinus, onPlus }: { value: number; onMinus: () => voi
 }
 
 const styles = StyleSheet.create({
-  label: { color: colors.text, fontSize: 15, fontWeight: '700', marginTop: 20, marginBottom: 10 },
-  subLabel: { color: colors.textMuted, fontSize: 13, marginTop: 12, marginBottom: 8 },
+  label: { color: colors.text, fontSize: 15, fontFamily: fonts.bold, marginTop: 20, marginBottom: 10 },
+  subLabel: { color: colors.textMuted, fontSize: 13, fontFamily: fonts.regular, marginTop: 12, marginBottom: 8 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  hint: { color: colors.textMutedDark, fontSize: 12, lineHeight: 17, marginTop: 8 },
+  hint: { color: colors.textMutedDark, fontSize: 12, fontFamily: fonts.regular, lineHeight: 17, marginTop: 8 },
   inlineLink: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap' },
-  link: { color: colors.accent, fontSize: 12, fontWeight: '700' },
+  link: { color: colors.accent, fontSize: 12, fontFamily: fonts.bold },
   disclaimer: { marginTop: 22, color: '#8FA5B9' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-  rowText: { color: '#D9E4EE', fontSize: 15 },
+  rowText: { color: '#D9E4EE', fontSize: 15, fontFamily: fonts.regular },
   adjustRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, gap: 12 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stepButton: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: '#294765', alignItems: 'center', justifyContent: 'center' },
-  stepValue: { color: colors.text, fontSize: 15, fontWeight: '700', minWidth: 30, textAlign: 'center' },
+  stepValue: { color: colors.text, fontSize: 15, fontFamily: fonts.bold, minWidth: 30, textAlign: 'center' },
 });

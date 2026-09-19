@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { ArrowLeft, Search } from 'lucide-react-native';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '@/constants/theme';
+import { colors, fonts } from '@/constants/theme';
 import { asmaHusna, nameOfTheDayIndex } from '@/data/asmaHusna';
 import { useLanguage } from '@/hooks/useLanguage';
 
@@ -83,20 +83,20 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 22 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   backButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: '#18344F', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#31506D' },
-  eyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 2, fontWeight: '700' },
-  title: { color: colors.text, fontSize: 26, fontWeight: '700', marginTop: 4 },
+  eyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 2, fontFamily: fonts.bold },
+  title: { color: colors.text, fontSize: 26, fontFamily: fonts.bold, marginTop: 4 },
   searchBox: { height: 50, borderRadius: 17, backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: '#294765', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginTop: 16 },
-  input: { flex: 1, marginLeft: 10, color: colors.text, fontSize: 14 },
+  input: { flex: 1, marginLeft: 10, color: colors.text, fontSize: 14, fontFamily: fonts.regular },
   dayCard: { backgroundColor: colors.accent, borderRadius: 20, padding: 20, marginTop: 18, alignItems: 'center' },
-  dayLabel: { color: '#254024', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-  dayArabic: { color: colors.accentDark, fontSize: 34, marginTop: 8 },
-  dayTranslit: { color: '#1A3323', fontSize: 16, fontWeight: '700', marginTop: 4 },
-  dayMeaning: { color: '#254024', fontSize: 14, marginTop: 6, textAlign: 'center' },
+  dayLabel: { color: '#254024', fontSize: 11, fontFamily: fonts.bold, letterSpacing: 1 },
+  dayArabic: { color: colors.accentDark, fontSize: 34, lineHeight: 60, fontFamily: fonts.arabic, marginTop: 4 },
+  dayTranslit: { color: '#1A3323', fontSize: 16, fontFamily: fonts.bold, marginTop: 4 },
+  dayMeaning: { color: '#254024', fontSize: 14, fontFamily: fonts.regular, marginTop: 6, textAlign: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 13, marginBottom: 8, gap: 12 },
   numberBadge: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#1D3C54', alignItems: 'center', justifyContent: 'center' },
-  numberText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
-  translit: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  meaning: { color: '#9CB3C6', fontSize: 12, marginTop: 4, lineHeight: 17 },
-  arabic: { color: colors.accentSoft, fontSize: 21, minWidth: 56, textAlign: 'right' },
-  note: { color: colors.textMutedDark, fontSize: 11, lineHeight: 16, textAlign: 'center', paddingTop: 10 },
+  numberText: { color: colors.accent, fontSize: 12, fontFamily: fonts.bold },
+  translit: { color: colors.text, fontSize: 14, fontFamily: fonts.bold },
+  meaning: { color: '#9CB3C6', fontSize: 12, fontFamily: fonts.regular, marginTop: 4, lineHeight: 17 },
+  arabic: { color: colors.accentSoft, fontSize: 22, lineHeight: 40, fontFamily: fonts.arabic, minWidth: 56, textAlign: 'right' },
+  note: { color: colors.textMutedDark, fontSize: 11, fontFamily: fonts.regular, lineHeight: 16, textAlign: 'center', paddingTop: 10 },
 });

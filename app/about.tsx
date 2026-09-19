@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '@/constants/theme';
+import { colors, fonts } from '@/constants/theme';
 import { privacyPolicy } from '@/data/privacyPolicy';
 import { useLanguage } from '@/hooks/useLanguage';
 
@@ -47,9 +47,9 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 22 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 },
   backButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: '#18344F', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#31506D' },
-  title: { color: colors.text, fontSize: 22, fontWeight: '700', flex: 1 },
-  updated: { color: colors.textMutedDark, fontSize: 12, marginBottom: 10 },
+  title: { color: colors.text, fontSize: 22, fontFamily: fonts.bold, flex: 1 },
+  updated: { color: colors.textMutedDark, fontSize: 12, fontFamily: fonts.regular, marginBottom: 10 },
   block: { marginBottom: 18 },
-  blockTitle: { color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 6 },
-  body: { color: '#C8D8E6', fontSize: 14, lineHeight: 22 },
+  blockTitle: { color: colors.text, fontSize: 16, fontFamily: fonts.bold, marginBottom: 6 },
+  body: { color: '#C8D8E6', fontSize: 14, fontFamily: fonts.regular, lineHeight: 22 },
 });

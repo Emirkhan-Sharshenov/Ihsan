@@ -1,6 +1,6 @@
 import { usePersistentState } from './usePersistentState';
 import { DEFAULT_CITY_ID, type CalcMethodId } from '@/data/cities';
-import { ZERO_ADJUSTMENTS, type Adjustments, type Madhhab } from '@/lib/prayerTimes';
+import { ZERO_ADJUSTMENTS, type Adjustments, type Madhhab, type PrayerKey } from '@/lib/prayerTimes';
 
 export type AppSettings = {
   city: string; // city id or GPS_CITY
@@ -10,6 +10,8 @@ export type AppSettings = {
   adjustments: Adjustments;
   notificationsEnabled: boolean;
   remindBeforeMinutes: 0 | 10 | 15 | 30;
+  mutedPrayers: PrayerKey[]; // prayers the user switched off with the bell on the home screen
+  tasbihVibration: boolean;
   hijriAdjust: number;
   tasbihGoal: number;
   tasbihPhrases: string[];
@@ -24,6 +26,8 @@ export const defaultSettings: AppSettings = {
   // Off until the user turns it on, so the permission prompt appears in context rather than on first launch.
   notificationsEnabled: false,
   remindBeforeMinutes: 0,
+  mutedPrayers: [],
+  tasbihVibration: true,
   hijriAdjust: 0,
   tasbihGoal: 33,
   tasbihPhrases: ['Субханаллах', 'Альхамдулиллях', 'Аллаху акбар'],

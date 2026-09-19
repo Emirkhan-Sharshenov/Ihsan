@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { FARD_KEYS, formatTime, type PrayerDay } from '@/lib/prayerTimes';
+import { FARD_KEYS, formatTime, type PrayerDay, type PrayerKey } from '@/lib/prayerTimes';
 import type { TranslationKeys } from '@/data/translations';
 import { prayerName } from '@/data/translations';
 
@@ -42,7 +42,7 @@ async function cancelPrayerNotifications() {
 type Options = {
   days: PrayerDay[];
   enabled: boolean;
-  atTime: boolean;
+  mutedPrayers: PrayerKey[];
   beforeMinutes: number;
   utcOffset: number;
   placeLabel: string;
@@ -51,14 +51,14 @@ type Options = {
 
 // Schedules local notifications for the coming week. They are recalculated whenever the times or
 // settings change and every time the app opens, so the queue stays filled while the app is used.
-export function useAdhanNotifications({ days, enabled, atTime, beforeMinutes, utcOffset, placeLabel, t }: Options) {
+export function useAdhanNotifications({ days, enabled, mutedPrayers, beforeMinutes, utcOffset, placeLabel, t }: Options) {
   const lastSignature = useRef<string | null>(null);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const active = enabled && days.length > 0 && (atTime || beforeMinutes > 0);
+    const active = enabled && days.length > 0 && mutedPrayers.length < FARD_KEYS.length;
     const signature = active
-      ? JSON.stringify([days.map((d) => d.times), atTime, beforeMinutes, utcOffset, placeLabel, t.notifyAtTitle])
+      ? JSON.stringify([days.map((d) => d.times), mutedPrayers, beforeMinutes, utcOffset, placeLabel, t.notifyAtTitle])
       : 'off';
     if (signature === lastSignature.current) return;
 
@@ -85,6 +85,7 @@ export function useAdhanNotifications({ days, enabled, atTime, beforeMinutes, ut
       const queue: { id: string; date: number; title: string; body: string }[] = [];
       for (const day of days) {
         for (const key of FARD_KEYS) {
+          if (mutedPrayers.includes(key)) continue;
           const time = day.times[key];
           const name = prayerName(t, key);
           const clock = formatTime(time, utcOffset);
@@ -96,7 +97,7 @@ export function useAdhanNotifications({ days, enabled, atTime, beforeMinutes, ut
               body: `${clock} · ${placeLabel}`,
             });
           }
-          if (atTime) {
+          {
             queue.push({
               id: `${ID_PREFIX}${day.dateKey}-${key}`,
               date: time,
@@ -124,5 +125,5 @@ export function useAdhanNotifications({ days, enabled, atTime, beforeMinutes, ut
     return () => {
       cancelled = true;
     };
-  }, [days, enabled, atTime, beforeMinutes, utcOffset, placeLabel, t]);
+  }, [days, enabled, mutedPrayers, beforeMinutes, utcOffset, placeLabel, t]);
 }

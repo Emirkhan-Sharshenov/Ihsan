@@ -3,7 +3,7 @@ import { BookOpen, Compass, CircleUserRound, HandHeart, House, RotateCcw } from 
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/hooks/useLanguage';
-import { tabColors } from '@/constants/theme';
+import { tabColors, fonts } from '@/constants/theme';
 
 export default function TabsLayout() {
   const { t } = useLanguage();
@@ -38,6 +38,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
 });

@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useIsFocused } from '@react-navigation/native';
-import { Compass, LocateFixed, MapPin, Navigation } from 'lucide-react-native';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Infinity as InfinityIcon, LocateFixed, MapPin, Navigation, RefreshCw, Ruler, SlidersHorizontal } from 'lucide-react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { Coordinates, Qibla } from 'adhan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '@/constants/theme';
+import { Card, PrimaryButton, ScreenBackground, ScreenHeader, type } from '@/components/ui';
+import { colors, fonts } from '@/constants/theme';
 import { useLanguage } from '@/hooks/useLanguage';
 import { requestGpsCoords } from '@/hooks/usePrayerTimes';
 
 const KAABA = { lat: 21.4225, lon: 39.8262 };
 const ALIGN_TOLERANCE = 5;
-const DIAL = 280;
+const DIAL = 290;
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 
@@ -33,14 +33,14 @@ function angleDelta(target: number, current: number): number {
 }
 
 type LocationState = { status: 'loading' | 'granted' | 'denied'; lat?: number; lon?: number };
-type HeadingState = { available: boolean; heading: number; lowAccuracy: boolean };
+type HeadingState = { available: boolean; heading: number; lowAccuracy: boolean; declination: number | null };
 
 export default function QiblaScreen() {
   const { t, lang } = useLanguage();
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const [location, setLocation] = useState<LocationState>({ status: 'loading' });
-  const [compass, setCompass] = useState<HeadingState>({ available: false, heading: 0, lowAccuracy: false });
+  const [compass, setCompass] = useState<HeadingState>({ available: false, heading: 0, lowAccuracy: false, declination: null });
   const smoothed = useRef<number | null>(null);
   const wasAligned = useRef(false);
 
@@ -54,11 +54,11 @@ export default function QiblaScreen() {
     resolveLocation();
   }, [resolveLocation]);
 
-  const onHeading = useCallback((raw: number, lowAccuracy: boolean) => {
+  const onHeading = useCallback((raw: number, lowAccuracy: boolean, declination: number | null) => {
     const prev = smoothed.current;
     const next = prev === null ? raw : (prev + angleDelta(raw, prev) * 0.3 + 360) % 360;
     smoothed.current = next;
-    setCompass({ available: true, heading: next, lowAccuracy });
+    setCompass({ available: true, heading: next, lowAccuracy, declination });
   }, []);
 
   // Native: expo-location heading. `trueHeading` is corrected for magnetic declination, which matters
@@ -68,9 +68,11 @@ export default function QiblaScreen() {
     let subscription: Location.LocationSubscription | null = null;
     let cancelled = false;
     Location.watchHeadingAsync((h) => {
-      const heading = h.trueHeading >= 0 ? h.trueHeading : h.magHeading;
+      const hasTrue = h.trueHeading >= 0;
+      const heading = hasTrue ? h.trueHeading : h.magHeading;
+      const declination = hasTrue ? angleDelta(h.trueHeading, h.magHeading) : null;
       // Android reports accuracy as a 0–3 level, iOS as an error in degrees.
-      onHeading(heading, Platform.OS === 'android' ? h.accuracy < 2 : h.accuracy < 0 || h.accuracy > 25);
+      onHeading(heading, Platform.OS === 'android' ? h.accuracy < 2 : h.accuracy < 0 || h.accuracy > 25, declination);
     })
       .then((sub) => {
         if (cancelled) sub.remove();
@@ -88,8 +90,8 @@ export default function QiblaScreen() {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const handler = (event: DeviceOrientationEvent) => {
       const webkit = (event as unknown as { webkitCompassHeading?: number }).webkitCompassHeading;
-      if (typeof webkit === 'number') onHeading(webkit, false);
-      else if (event.absolute && event.alpha !== null) onHeading((360 - event.alpha) % 360, false);
+      if (typeof webkit === 'number') onHeading(webkit, false, null);
+      else if (event.absolute && event.alpha !== null) onHeading((360 - event.alpha) % 360, false, null);
     };
     window.addEventListener('deviceorientationabsolute' as 'deviceorientation', handler, true);
     window.addEventListener('deviceorientation', handler, true);
@@ -112,88 +114,106 @@ export default function QiblaScreen() {
   }, [isAligned]);
 
   const dialRotation = compass.available ? -compass.heading : 0;
+  const cardinals = lang === 'ky' ? ['Түн', 'Чыг', 'Түш', 'Бат'] : ['С', 'В', 'Ю', 'З'];
 
   return (
     <View style={styles.screen}>
-      <LinearGradient colors={['#153957', colors.bg]} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.eyebrow}>{t.qiblaEyebrow}</Text>
-            <Text style={styles.title}>{t.qiblaTitle}</Text>
-          </View>
-          <View style={styles.headerIcon}>
-            <Compass color={colors.accent} size={22} />
-          </View>
-        </View>
+      <ScreenBackground />
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]} showsVerticalScrollIndicator={false}>
+        <ScreenHeader title={t.qiblaTitle} />
 
         {location.status === 'denied' ? (
           <View style={styles.centerContent}>
             <View style={styles.deniedIcon}>
-              <LocateFixed color="#7890A6" size={40} />
+              <LocateFixed color={colors.textMuted} size={40} />
             </View>
-            <Text style={styles.deniedText}>{t.qiblaLocationDenied}</Text>
-            <Pressable style={styles.enableButton} onPress={resolveLocation}>
-              <LocateFixed color={colors.accentDark} size={18} />
-              <Text style={styles.enableButtonText}>{t.qiblaEnableLocation}</Text>
-            </Pressable>
+            <Text style={[type.muted, styles.deniedText]}>{t.qiblaLocationDenied}</Text>
+            <PrimaryButton label={t.qiblaEnableLocation} onPress={resolveLocation} icon={<LocateFixed color={colors.accentDark} size={18} />} />
           </View>
         ) : location.status === 'loading' || qibla === null ? (
           <View style={styles.centerContent}>
             <ActivityIndicator color={colors.accent} size="large" />
-            <Text style={styles.loadingText}>{t.qiblaFindingLocation}</Text>
+            <Text style={[type.muted, { marginTop: 20 }]}>{t.qiblaFindingLocation}</Text>
           </View>
         ) : (
           <>
+            <View style={styles.locationChip}>
+              <LocateFixed color={colors.accent} size={15} />
+              <Text style={styles.locationChipText}>
+                {location.lat!.toFixed(3)}, {location.lon!.toFixed(3)} · {t.qiblaGpsActive}
+              </Text>
+            </View>
+
             <View style={styles.compassWrap}>
               {/* Fixed pointer at the top: the direction the phone is facing. */}
-              <View style={[styles.pointer, isAligned && styles.pointerAligned]} />
-              <View style={[styles.dial, isAligned && styles.dialAligned, { transform: [{ rotate: `${dialRotation}deg` }] }]}>
-                {[0, 90, 180, 270].map((deg) => (
-                  <View key={deg} style={[styles.cardinalWrap, { transform: [{ rotate: `${deg}deg` }] }]}>
-                    <Text style={[styles.cardinal, deg === 0 && styles.cardinalNorth]}>{lang === 'ky' ? ['Түн', 'Чыг', 'Түш', 'Бат'][deg / 90] : ['С', 'В', 'Ю', 'З'][deg / 90]}</Text>
+              <Navigation color={isAligned ? colors.accent : colors.text} fill={isAligned ? colors.accent : 'transparent'} size={30} />
+              <View style={[styles.pointerStem, isAligned && { backgroundColor: colors.accent }]} />
+              <View style={[styles.dial, isAligned && styles.dialAligned]}>
+                <View style={[styles.dialRotor, { transform: [{ rotate: `${dialRotation}deg` }] }]}>
+                  {Array.from({ length: 72 }).map((_, i) => (
+                    <View key={i} style={[styles.tickWrap, { transform: [{ rotate: `${i * 5}deg` }] }]}>
+                      <View style={[styles.tick, i % 18 === 0 ? styles.tickCardinal : i % 6 === 0 && styles.tickMajor]} />
+                    </View>
+                  ))}
+                  {[0, 90, 180, 270].map((deg, i) => (
+                    <View key={deg} style={[styles.cardinalWrap, { transform: [{ rotate: `${deg}deg` }] }]}>
+                      <Text style={[styles.cardinal, deg === 0 && styles.cardinalNorth]}>{cardinals[i]}</Text>
+                    </View>
+                  ))}
+                  <View style={[styles.qiblaNeedleWrap, { transform: [{ rotate: `${qibla}deg` }] }]}>
+                    <View style={styles.kaabaBadge}>
+                      <View style={styles.kaabaIcon}>
+                        <View style={styles.kaabaBand} />
+                      </View>
+                    </View>
+                    <View style={styles.qiblaNeedle} />
                   </View>
-                ))}
-                {Array.from({ length: 72 }).map((_, i) => (
-                  <View key={i} style={[styles.tickWrap, { transform: [{ rotate: `${i * 5}deg` }] }]}>
-                    <View style={[styles.tick, i % 6 === 0 && styles.tickMajor]} />
-                  </View>
-                ))}
-                <View style={[styles.qiblaNeedleWrap, { transform: [{ rotate: `${qibla}deg` }] }]}>
-                  <View style={styles.kaabaIcon}>
-                    <View style={styles.kaabaBand} />
-                  </View>
-                  <View style={styles.qiblaNeedle} />
                 </View>
-                <View style={styles.center} />
+                <View style={styles.centerDisc}>
+                  <View style={[styles.centerDot, isAligned && { backgroundColor: colors.accent }]} />
+                  <Text style={styles.headingValue}>{compass.available ? `${Math.round(compass.heading)}°` : `${Math.round(qibla)}°`}</Text>
+                  <Text style={styles.headingLabel}>{t.qiblaHeadingLabel}</Text>
+                </View>
               </View>
             </View>
 
-            <Text style={[styles.turnText, isAligned && styles.turnTextAligned]}>
-              {!compass.available
-                ? t.qiblaNoCompass.replace('{deg}', String(Math.round(qibla)))
-                : isAligned
-                  ? t.qiblaAligned
-                  : delta! > 0
-                    ? t.qiblaTurnRight.replace('{n}', String(Math.round(delta!)))
-                    : t.qiblaTurnLeft.replace('{n}', String(Math.round(-delta!)))}
-            </Text>
+            <View style={[styles.turnPill, isAligned && styles.turnPillAligned]}>
+              <RefreshCw color={isAligned ? colors.accentDark : colors.accent} size={18} />
+              <Text style={[styles.turnText, isAligned && { color: colors.accentDark }]}>
+                {!compass.available
+                  ? t.qiblaNoCompass.replace('{deg}', String(Math.round(qibla)))
+                  : isAligned
+                    ? t.qiblaAligned
+                    : delta! > 0
+                      ? t.qiblaTurnRight.replace('{n}', String(Math.round(delta!)))
+                      : t.qiblaTurnLeft.replace('{n}', String(Math.round(-delta!)))}
+              </Text>
+            </View>
+            {compass.available && !isAligned ? <Text style={[type.small, { textAlign: 'center', marginTop: 8 }]}>{t.qiblaAlignHint}</Text> : null}
             {compass.lowAccuracy ? <Text style={styles.warning}>{t.qiblaLowAccuracy}</Text> : null}
 
-            <View style={styles.infoCard}>
-              <InfoRow icon={<Navigation color={colors.accent} size={18} />} label={t.qiblaDirection} value={`${Math.round(qibla)}° ${t.qiblaFromNorth}`} />
-              <InfoRow
-                icon={<MapPin color={colors.accent} size={18} />}
-                label={t.qiblaDistance}
-                value={`${distanceKm(location.lat!, location.lon!).toLocaleString('ru-RU')} ${t.qiblaKm}`}
-              />
-              <InfoRow
-                icon={<LocateFixed color={colors.accent} size={18} />}
-                label={t.qiblaYourLocation}
-                value={`${location.lat!.toFixed(3)}, ${location.lon!.toFixed(3)}`}
-              />
-            </View>
-            <Text style={styles.hintText}>{t.qiblaCalibrate}</Text>
+            <Card style={styles.infoCard}>
+              <InfoRow icon={<Navigation color={colors.textMuted} size={18} />} label={t.qiblaDirection} value={`${Math.round(qibla)}° ${t.qiblaFromNorth}`} highlight />
+              <InfoRow icon={<Ruler color={colors.textMuted} size={18} />} label={t.qiblaDistance} value={`${distanceKm(location.lat!, location.lon!).toLocaleString('ru-RU')} ${t.qiblaKm}`} />
+              <InfoRow icon={<MapPin color={colors.textMuted} size={18} />} label={t.qiblaYourLocation} value={`${location.lat!.toFixed(3)}, ${location.lon!.toFixed(3)}`} />
+              {compass.declination !== null ? (
+                <InfoRow
+                  icon={<SlidersHorizontal color={colors.textMuted} size={18} />}
+                  label={t.qiblaDeclination}
+                  value={`${compass.declination >= 0 ? '+' : ''}${compass.declination.toFixed(1)}°`}
+                />
+              ) : null}
+            </Card>
+
+            <Card style={styles.calibrateCard}>
+              <View style={styles.calibrateIcon}>
+                <InfinityIcon color={colors.accent} size={22} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={type.title}>{t.qiblaCalibrateTitle}</Text>
+                <Text style={[type.muted, { marginTop: 4 }]}>{t.qiblaCalibrate}</Text>
+              </View>
+            </Card>
           </>
         )}
       </ScrollView>
@@ -201,51 +221,53 @@ export default function QiblaScreen() {
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function InfoRow({ icon, label, value, highlight }: { icon: React.ReactNode; label: string; value: string; highlight?: boolean }) {
   return (
     <View style={styles.infoRow}>
       {icon}
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+      <Text style={[styles.infoValue, highlight && { color: colors.accent }]}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: 22, paddingBottom: 32, flexGrow: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  eyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 2, fontWeight: '700' },
-  title: { color: colors.text, fontSize: 30, fontWeight: '700', marginTop: 9 },
-  headerIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: '#18344F', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#31506D' },
+  content: { paddingHorizontal: 20, paddingBottom: 32, flexGrow: 1 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
-  deniedIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#18344F', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#31506D', marginBottom: 20 },
-  deniedText: { color: colors.textMuted, fontSize: 15, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20, lineHeight: 21 },
-  enableButton: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.accent, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24 },
-  enableButtonText: { color: colors.accentDark, fontWeight: '700', fontSize: 15 },
-  loadingText: { color: colors.textMuted, fontSize: 14, marginTop: 20 },
-  compassWrap: { alignItems: 'center', marginTop: 30 },
-  pointer: { width: 0, height: 0, borderLeftWidth: 10, borderRightWidth: 10, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#EAF4FF', marginBottom: 6 },
-  pointerAligned: { borderTopColor: colors.accent },
-  dial: { width: DIAL, height: DIAL, borderRadius: DIAL / 2, backgroundColor: colors.card, borderWidth: 2, borderColor: '#31506D', alignItems: 'center', justifyContent: 'center' },
-  dialAligned: { borderColor: colors.accent },
-  cardinalWrap: { position: 'absolute', width: DIAL, height: DIAL, alignItems: 'center', paddingTop: 22 },
-  cardinal: { color: '#7890A6', fontSize: 15, fontWeight: '700' },
-  cardinalNorth: { color: '#F58B8B' },
-  tickWrap: { position: 'absolute', width: DIAL, height: DIAL, alignItems: 'center', paddingTop: 4 },
-  tick: { width: 1, height: 6, backgroundColor: '#31506D' },
-  tickMajor: { width: 2, height: 11, backgroundColor: '#50677D' },
-  qiblaNeedleWrap: { position: 'absolute', width: DIAL, height: DIAL, alignItems: 'center', paddingTop: 44 },
-  kaabaIcon: { width: 26, height: 26, backgroundColor: '#111', borderRadius: 3, borderWidth: 1, borderColor: '#D4AF37', justifyContent: 'flex-start' },
-  kaabaBand: { height: 4, marginTop: 6, backgroundColor: '#D4AF37' },
-  qiblaNeedle: { width: 4, height: DIAL / 2 - 70, backgroundColor: colors.accent, borderRadius: 2 },
-  center: { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.accent },
-  turnText: { color: colors.text, fontSize: 17, fontWeight: '700', textAlign: 'center', marginTop: 22, lineHeight: 23 },
-  turnTextAligned: { color: colors.accent },
-  warning: { color: '#E8CE9A', fontSize: 12, textAlign: 'center', marginTop: 8 },
-  infoCard: { backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 18, paddingVertical: 8, marginTop: 24 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  infoLabel: { flex: 1, color: colors.textMuted, fontSize: 14 },
-  infoValue: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  hintText: { color: colors.textMutedDark, fontSize: 12, textAlign: 'center', marginTop: 16, lineHeight: 18 },
+  deniedIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, marginBottom: 20 },
+  deniedText: { textAlign: 'center', paddingHorizontal: 20 },
+  locationChip: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderRadius: 999, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 8, marginTop: 4 },
+  locationChipText: { color: colors.accent, fontSize: 12, fontFamily: fonts.semibold },
+  compassWrap: { alignItems: 'center', marginTop: 20 },
+  pointerStem: { width: 4, height: 12, borderRadius: 2, backgroundColor: colors.text, marginTop: 2, marginBottom: 6 },
+  dial: { width: DIAL, height: DIAL, borderRadius: DIAL / 2, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  dialAligned: { borderColor: colors.accent, borderWidth: 2 },
+  dialRotor: { position: 'absolute', width: DIAL, height: DIAL },
+  tickWrap: { position: 'absolute', width: DIAL, height: DIAL, alignItems: 'center', paddingTop: 6 },
+  tick: { width: 1, height: 6, backgroundColor: '#2C4A68' },
+  tickMajor: { width: 2, height: 10, backgroundColor: '#4E6A85' },
+  tickCardinal: { width: 2, height: 14, backgroundColor: colors.textMuted },
+  cardinalWrap: { position: 'absolute', width: DIAL, height: DIAL, alignItems: 'center', paddingTop: 24 },
+  cardinal: { color: colors.textMuted, fontSize: 16, fontFamily: fonts.bold },
+  cardinalNorth: { color: colors.heart },
+  qiblaNeedleWrap: { position: 'absolute', width: DIAL, height: DIAL, alignItems: 'center', paddingTop: 50 },
+  kaabaBadge: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  kaabaIcon: { width: 20, height: 20, backgroundColor: '#111', borderRadius: 2, borderWidth: 1, borderColor: '#D4AF37' },
+  kaabaBand: { height: 3, marginTop: 5, backgroundColor: '#D4AF37' },
+  qiblaNeedle: { width: 3, height: DIAL / 2 - 140, minHeight: 20, backgroundColor: colors.accent, borderRadius: 2, opacity: 0.8 },
+  centerDisc: { width: 124, height: 124, borderRadius: 62, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  centerDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.textMuted, marginBottom: 6 },
+  headingValue: { color: colors.text, fontSize: 26, fontFamily: fonts.bold, fontVariant: ['tabular-nums'] },
+  headingLabel: { color: colors.textMuted, fontSize: 10, letterSpacing: 1, fontFamily: fonts.semibold },
+  turnPill: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.cardAlt, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 12, marginTop: 24, maxWidth: '100%' },
+  turnPillAligned: { backgroundColor: colors.accent },
+  turnText: { color: colors.text, fontSize: 17, fontFamily: fonts.semibold, flexShrink: 1, textAlign: 'center' },
+  warning: { color: colors.warnText, fontSize: 12, textAlign: 'center', marginTop: 8, fontFamily: fonts.regular },
+  infoCard: { marginTop: 22, paddingVertical: 6 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  infoLabel: { flex: 1, color: colors.text, fontSize: 15, fontFamily: fonts.regular },
+  infoValue: { color: colors.text, fontSize: 15, fontFamily: fonts.semibold, fontVariant: ['tabular-nums'] },
+  calibrateCard: { marginTop: 16, flexDirection: 'row', gap: 14 },
+  calibrateIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' },
 });

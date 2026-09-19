@@ -1,11 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BookOpen, ChevronRight, Pause, Play, RefreshCw, Search, Star, X } from 'lucide-react-native';
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View, type ViewToken } from 'react-native';
+import {
+  ArrowLeft,
+  Bookmark,
+  BookmarkCheck,
+  Copy,
+  Heart,
+  Info,
+  Languages,
+  Pause,
+  Play,
+  RefreshCw,
+  Search,
+  SkipBack,
+  SkipForward,
+  Type,
+  Volume2,
+} from 'lucide-react-native';
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewToken } from 'react-native';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Toggle } from '@/components/ui';
-import { colors } from '@/constants/theme';
+import { ArabicText, Card, Chip, IconButton, Note, Pill, PrimaryButton, ScreenBackground, ScreenHeader, SecondaryButton, Toggle, type } from '@/components/ui';
+import { colors, fonts } from '@/constants/theme';
 import { sajdaLabel } from '@/data/sajdaLocations';
 import { surahs, type Surah } from '@/data/surahs';
 import type { Lang, TranslationKeys } from '@/data/translations';
@@ -13,10 +28,14 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { useLastRead, useSurahDetail, useSurahFavorites } from '@/hooks/useQuranSurahs';
 import { useSettings } from '@/hooks/useSettings';
+import { copyText } from '@/lib/share';
 
 const RECITER_EDITION = 'ar.alafasy';
 const audioUrlForAyah = (globalAyahNumber: number) => `https://cdn.islamic.network/quran/audio/128/${RECITER_EDITION}/${globalAyahNumber}.mp3`;
 const BASMALA = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+const ARABIC_SIZES = [24, 28, 33];
+
+type Filter = 'all' | 'meccan' | 'medinan' | 'favorites';
 
 export default function QuranScreen() {
   const { t, lang } = useLanguage();
@@ -24,19 +43,24 @@ export default function QuranScreen() {
   const { favorites, toggleFavorite } = useSurahFavorites();
   const [lastRead, setLastRead] = useLastRead();
   const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
   const [active, setActive] = useState<{ surah: Surah; startAyah: number } | null>(null);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase().replace(/[-'‘’\s]/g, '');
-    if (!q) return surahs;
-    return surahs.filter(
-      (s) =>
+    return surahs.filter((s) => {
+      if (filter === 'meccan' && s.revelationType !== 'Meccan') return false;
+      if (filter === 'medinan' && s.revelationType !== 'Medinan') return false;
+      if (filter === 'favorites' && !favorites.includes(s.number)) return false;
+      if (!q) return true;
+      return (
         String(s.number) === q ||
         s.englishName.toLowerCase().replace(/[-'‘’\s]/g, '').includes(q) ||
         s.nameRu.toLowerCase().replace(/[-\s]/g, '').includes(q) ||
-        s.name.includes(query.trim()),
-    );
-  }, [query]);
+        s.name.includes(query.trim())
+      );
+    });
+  }, [query, filter, favorites]);
 
   const lastReadSurah = lastRead ? surahs.find((s) => s.number === lastRead.surahNumber) : null;
 
@@ -45,59 +69,99 @@ export default function QuranScreen() {
     if (!lastRead || lastRead.surahNumber !== surah.number) setLastRead({ surahNumber: surah.number, ayahNumber: startAyah });
   };
 
+  const header = (
+    <View>
+      <ScreenHeader title={t.tabQuran} />
+      <View style={styles.titleRow}>
+        <Text style={type.display}>{t.quranTitle}</Text>
+        <Pill label={t.quranCount} tone="muted" style={{ alignSelf: 'center' }} />
+      </View>
+      <Text style={[type.muted, { marginTop: 4 }]}>{t.quranSubtitle}</Text>
+
+      <View style={styles.searchBox}>
+        <Search color={colors.textMuted} size={20} />
+        <TextInput value={query} onChangeText={setQuery} placeholder={t.quranSearchPlaceholder} placeholderTextColor={colors.textMuted} style={styles.input} />
+      </View>
+
+      {lastReadSurah && lastRead && !query ? (
+        <Pressable onPress={() => openSurah(lastReadSurah, lastRead.ayahNumber)} style={({ pressed }) => [pressed && { opacity: 0.9 }]}>
+          <Card style={styles.continueCard}>
+            <Pill label={`● ${t.quranContinueReading.toUpperCase()}`} />
+            <View style={styles.continueRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.continueTitle}>
+                  {lastReadSurah.number}. {lastReadSurah.englishName}
+                  {lang === 'ru' ? ` (${lastReadSurah.nameRu})` : ''}
+                </Text>
+                <Text style={type.small}>
+                  {t.quranProgress
+                    .replace('{n}', String(lastRead.ayahNumber))
+                    .replace('{total}', String(lastReadSurah.numberOfAyahs))
+                    .replace('{p}', String(Math.round((lastRead.ayahNumber / lastReadSurah.numberOfAyahs) * 100)))}
+                </Text>
+              </View>
+              <View style={styles.playCircle}>
+                <Play color={colors.accentDark} size={20} fill={colors.accentDark} />
+              </View>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${Math.max(3, (lastRead.ayahNumber / lastReadSurah.numberOfAyahs) * 100)}%` }]} />
+            </View>
+          </Card>
+        </Pressable>
+      ) : null}
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScrollView} contentContainerStyle={styles.chipScroll}>
+        <Chip label={`${t.quranFilterAll} (114)`} active={filter === 'all'} onPress={() => setFilter('all')} />
+        <Chip label={t.quranFilterMeccan} active={filter === 'meccan'} onPress={() => setFilter('meccan')} />
+        <Chip label={t.quranFilterMedinan} active={filter === 'medinan'} onPress={() => setFilter('medinan')} />
+        <Chip
+          label={t.quranFilterFav}
+          active={filter === 'favorites'}
+          onPress={() => setFilter('favorites')}
+          icon={<Heart color={filter === 'favorites' ? colors.accentDark : colors.heart} size={14} />}
+        />
+      </ScrollView>
+    </View>
+  );
+
   return (
     <View style={styles.screen}>
-      <LinearGradient colors={['#102D49', colors.bg]} style={StyleSheet.absoluteFill} />
+      <ScreenBackground />
       <FlatList
         data={visible}
         keyExtractor={(item) => String(item.number)}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
-        ListHeaderComponent={
-          <View>
-            <Text style={styles.eyebrow}>{t.quranEyebrow}</Text>
-            <Text style={styles.title}>{t.quranTitle}</Text>
-            <View style={styles.searchBox}>
-              <Search color="#96A9BE" size={19} />
-              <TextInput value={query} onChangeText={setQuery} placeholder={t.quranSearchPlaceholder} placeholderTextColor="#8EA1B5" style={styles.input} />
-            </View>
-            {lastReadSurah && lastRead && !query ? (
-              <Pressable style={styles.continueCard} onPress={() => openSurah(lastReadSurah, lastRead.ayahNumber)}>
-                <View style={styles.continueIcon}>
-                  <BookOpen color={colors.accentDark} size={20} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.continueLabel}>{t.quranContinueReading}</Text>
-                  <Text style={styles.continueTitle}>
-                    {lastReadSurah.number}. {lang === 'ru' ? lastReadSurah.nameRu : lastReadSurah.englishName} · {lastRead.ayahNumber}
-                  </Text>
-                </View>
-                <ChevronRight color={colors.accentDark} size={20} />
-              </Pressable>
-            ) : null}
-            <View style={{ height: 14 }} />
-          </View>
-        }
-        ListEmptyComponent={<Text style={styles.stateText}>{t.quranEmpty}</Text>}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
+        ListHeaderComponent={header}
+        ListEmptyComponent={<Text style={[type.muted, { textAlign: 'center', marginTop: 20 }]}>{t.quranEmpty}</Text>}
         renderItem={({ item }) => {
           const isFavorite = favorites.includes(item.number);
+          const isReading = lastRead?.surahNumber === item.number;
           return (
-            <Pressable style={styles.surahRow} onPress={() => openSurah(item)}>
-              <View style={styles.surahNumber}>
-                <Text style={styles.surahNumberText}>{item.number}</Text>
+            <Pressable style={({ pressed }) => [styles.surahRow, isReading && styles.surahRowReading, pressed && { opacity: 0.85 }]} onPress={() => openSurah(item)}>
+              <View style={[styles.surahNumber, isReading && styles.surahNumberReading]}>
+                <Text style={[styles.surahNumberText, isReading && { color: colors.accentDark }]}>{item.number}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.surahName}>{item.englishName}</Text>
-                <Text style={styles.surahMeta}>
+                <View style={styles.surahNameRow}>
+                  <Text style={styles.surahName} numberOfLines={1}>
+                    {item.englishName}
+                  </Text>
+                  {isReading ? <Pill label={t.quranReadingNow} /> : null}
+                  <Pressable hitSlop={10} onPress={() => toggleFavorite(item.number)} accessibilityRole="button" accessibilityLabel={t.quranFilterFav}>
+                    <Heart color={colors.heart} fill={isFavorite ? colors.heart : 'transparent'} size={16} />
+                  </Pressable>
+                </View>
+                <Text style={type.small} numberOfLines={1}>
                   {lang === 'ru' ? `${item.nameRu} · ` : ''}
                   {item.numberOfAyahs} {t.quranAyahsShort} · {item.revelationType === 'Meccan' ? t.quranMeccan : t.quranMedinan}
                 </Text>
               </View>
-              <Pressable hitSlop={10} onPress={() => toggleFavorite(item.number)} style={styles.starButton} accessibilityRole="button">
-                <Star color={isFavorite ? '#F0C96B' : '#7890A6'} fill={isFavorite ? '#F0C96B' : 'transparent'} size={17} />
-              </Pressable>
-              <Text style={styles.surahArabic}>{item.name.replace(/^سُورَةُ\s*/, '')}</Text>
+              <ArabicText size={20} style={{ color: colors.accentSoft, lineHeight: 34 }}>
+                {item.name.replace(/^سُورَةُ\s*/, '')}
+              </ArabicText>
             </Pressable>
           );
         }}
@@ -114,6 +178,7 @@ export default function QuranScreen() {
             isFavorite={favorites.includes(active.surah.number)}
             onToggleFavorite={() => toggleFavorite(active.surah.number)}
             onAyahVisible={(ayahNumber) => setLastRead({ surahNumber: active.surah.number, ayahNumber })}
+            onNavigate={(number) => openSurah(surahs[number - 1])}
             onClose={() => setActive(null)}
           />
         ) : null}
@@ -130,6 +195,7 @@ function SurahReader({
   isFavorite,
   onToggleFavorite,
   onAyahVisible,
+  onNavigate,
   onClose,
 }: {
   surah: Surah;
@@ -139,18 +205,23 @@ function SurahReader({
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onAyahVisible: (ayahNumber: number) => void;
+  onNavigate: (surahNumber: number) => void;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [settings] = useSettings();
   const { ayahs, loading, error, refresh } = useSurahDetail(surah.number, lang);
   const [showTranslit, setShowTranslit] = usePersistentState('@quran_show_translit', true);
+  const [sizeIndex, setSizeIndex] = usePersistentState('@quran_arabic_size', 0);
   const [playing, setPlaying] = useState<{ index: number; autoplay: boolean } | null>(null);
   const [audioError, setAudioError] = useState(false);
+  const [bookmarked, setBookmarked] = useState<number | null>(null);
+  const [copied, setCopied] = useState<number | null>(null);
   const player = useAudioPlayer(null);
   const status = useAudioPlayerStatus(player);
   const listRef = useRef<FlatList>(null);
   const scrolledToStart = useRef(false);
+  const arabicSize = ARABIC_SIZES[sizeIndex] ?? ARABIC_SIZES[0];
 
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: false }).catch(() => {});
@@ -210,51 +281,59 @@ function SurahReader({
     if (first) onAyahVisible((first.item as { numberInSurah: number }).numberInSurah);
   }).current;
 
+  const close = () => {
+    stop();
+    onClose();
+  };
+
+  const currentAyah = playing ? playing.index + 1 : 0;
+
   return (
-    <View style={styles.readerScreen}>
-      <LinearGradient colors={['#102D49', colors.bg]} style={StyleSheet.absoluteFill} />
-      <View style={[styles.readerHeader, { paddingTop: insets.top + 12 }]}>
-        <Pressable
-          onPress={() => {
-            stop();
-            onClose();
-          }}
-          hitSlop={12}
-          style={styles.readerButton}
-          accessibilityRole="button"
-        >
-          <X color="#EAF4FF" size={22} />
-        </Pressable>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={styles.readerTitle}>
-            {surah.number}. {surah.englishName}
-          </Text>
-          <Text style={styles.readerSubtitle}>{lang === 'ru' ? surah.nameRu : surah.name}</Text>
+    <View style={styles.screen}>
+      <ScreenBackground />
+      <View style={[styles.readerTop, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.readerHeader}>
+          <Pressable onPress={close} hitSlop={12} style={styles.backButton} accessibilityRole="button">
+            <ArrowLeft color={colors.text} size={22} />
+          </Pressable>
+          <Text style={[type.headline, { flex: 1 }]}>{t.quranReaderTitle}</Text>
         </View>
-        <Pressable onPress={onToggleFavorite} hitSlop={12} style={styles.readerButton} accessibilityRole="button">
-          <Star color={isFavorite ? '#F0C96B' : '#EAF4FF'} fill={isFavorite ? '#F0C96B' : 'transparent'} size={20} />
-        </Pressable>
+        <View style={styles.readerTitleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={type.small}>
+              <Text style={{ color: colors.accent, fontFamily: fonts.semibold }}>{t.quranSurahLabel.replace('{n}', String(surah.number))}</Text> ·{' '}
+              {surah.revelationType === 'Meccan' ? t.quranMeccan : t.quranMedinan} ({surah.numberOfAyahs} {t.quranAyahsShort})
+            </Text>
+            <Text style={styles.readerTitle} numberOfLines={1}>
+              {surah.englishName}
+              {lang === 'ru' ? ` • ${surah.nameRu}` : ''}
+            </Text>
+          </View>
+          <IconButton label={t.quranFilterFav} onPress={onToggleFavorite} style={styles.roundButton}>
+            <Heart color={colors.heart} fill={isFavorite ? colors.heart : 'transparent'} size={19} />
+          </IconButton>
+          <IconButton label={t.quranTextSize} onPress={() => setSizeIndex((sizeIndex + 1) % ARABIC_SIZES.length)} style={styles.roundButton}>
+            <Type color={colors.text} size={19} />
+          </IconButton>
+        </View>
       </View>
 
       {loading ? (
         <View style={styles.centerBox}>
           <ActivityIndicator color={colors.accent} />
-          <Text style={styles.stateText}>{t.quranAyahLoading}</Text>
+          <Text style={type.muted}>{t.quranAyahLoading}</Text>
         </View>
       ) : error ? (
         <View style={styles.centerBox}>
-          <Text style={styles.stateText}>{t.quranAyahError}</Text>
-          <Pressable style={styles.retryButton} onPress={refresh}>
-            <RefreshCw color={colors.accentDark} size={16} />
-            <Text style={styles.retryText}>{t.retry}</Text>
-          </Pressable>
+          <Text style={[type.muted, { textAlign: 'center' }]}>{t.quranAyahError}</Text>
+          <PrimaryButton label={t.retry} onPress={refresh} icon={<RefreshCw color={colors.accentDark} size={16} />} />
         </View>
       ) : (
         <FlatList
           ref={listRef}
           data={ayahs}
           keyExtractor={(item) => String(item.number)}
-          contentContainerStyle={[styles.ayahListContent, { paddingBottom: insets.bottom + 40 }]}
+          contentContainerStyle={[styles.readerList, { paddingBottom: insets.bottom + 24 }]}
           showsVerticalScrollIndicator={false}
           viewabilityConfig={viewabilityConfig}
           onViewableItemsChanged={onViewableItemsChanged}
@@ -263,23 +342,74 @@ function SurahReader({
             setTimeout(() => listRef.current?.scrollToIndex({ index, animated: false }), 200);
           }}
           ListHeaderComponent={
-            <View>
-              <Pressable style={styles.playSurahBar} onPress={() => (playing?.autoplay ? stop() : startAyahAt(0, true))}>
-                {playing?.autoplay ? <Pause color={colors.accentDark} size={17} /> : <Play color={colors.accentDark} size={17} />}
-                <Text style={styles.playSurahText}>{playing?.autoplay ? t.quranStopSurah : t.quranPlaySurah}</Text>
-                <Text style={styles.reciterText}>{t.quranReciterName}</Text>
-              </Pressable>
-              {audioError ? <Text style={styles.audioError}>{t.quranAudioNeedsInternet}</Text> : null}
-              <Pressable style={styles.translitToggle} onPress={() => setShowTranslit(!showTranslit)} accessibilityRole="switch">
-                <Text style={styles.translitToggleText}>{t.quranShowTransliteration}</Text>
-                <Toggle value={showTranslit} />
-              </Pressable>
-              <View style={styles.disclaimerBar}>
-                <Text style={styles.disclaimerText}>
-                  {t.quranTranslationSource}. {t.quranTransliterationNote}
-                </Text>
+            <View style={{ gap: 12 }}>
+              <Card style={styles.audioCard}>
+                <Pressable
+                  style={styles.audioPlay}
+                  onPress={() => (playing?.autoplay ? stop() : startAyahAt(0, true))}
+                  accessibilityRole="button"
+                  accessibilityLabel={playing?.autoplay ? t.quranStopSurah : t.quranPlaySurah}
+                >
+                  {playing?.autoplay ? <Pause color={colors.accentDark} size={24} fill={colors.accentDark} /> : <Play color={colors.accentDark} size={24} fill={colors.accentDark} />}
+                </Pressable>
+                <View style={{ flex: 1 }}>
+                  <Text style={type.title} numberOfLines={1}>
+                    {t.quranReciterName}
+                  </Text>
+                  <Text style={type.small}>{audioError ? t.quranAudioNeedsInternet : t.quranListenSubtitle}</Text>
+                </View>
+                {playing ? (
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <Text style={styles.audioCounter}>
+                      {currentAyah} / {ayahs.length}
+                    </Text>
+                    <View style={styles.audioTrack}>
+                      <View style={[styles.audioFill, { width: `${(currentAyah / ayahs.length) * 100}%` }]} />
+                    </View>
+                  </View>
+                ) : null}
+              </Card>
+
+              <View style={styles.optionsRow}>
+                <View style={styles.translatorChip}>
+                  <Languages color={colors.textMuted} size={16} />
+                  <Text style={styles.translatorText} numberOfLines={1}>
+                    {lang === 'ky' ? 'Ш. Хакимов' : 'Эльмир Кулиев'}
+                  </Text>
+                </View>
+                <Pressable style={styles.translitSwitch} onPress={() => setShowTranslit(!showTranslit)} accessibilityRole="switch" accessibilityState={{ checked: showTranslit }}>
+                  <Text style={type.body}>{t.quranShowTransliteration}</Text>
+                  <Toggle value={showTranslit} />
+                </Pressable>
               </View>
-              {surah.number !== 1 && surah.number !== 9 ? <Text style={styles.basmala}>{BASMALA}</Text> : null}
+
+              <Note icon={<Info color={colors.accent} size={16} />} text={`${t.quranTranslationSource}. ${t.quranTransliterationNote}`} />
+
+              {surah.number !== 1 && surah.number !== 9 ? (
+                <View style={styles.basmalaBox}>
+                  <ArabicText size={26} style={{ color: colors.accent, textAlign: 'center' }}>
+                    {BASMALA}
+                  </ArabicText>
+                  <Text style={[type.small, { fontStyle: 'italic', textAlign: 'center' }]}>{t.quranBasmalaMeaning}</Text>
+                </View>
+              ) : null}
+            </View>
+          }
+          ListFooterComponent={
+            <View style={styles.navRow}>
+              {surah.number > 1 ? (
+                <SecondaryButton label={t.quranPrev} onPress={() => onNavigate(surah.number - 1)} icon={<SkipBack color={colors.text} size={16} />} style={{ flex: 1 }} />
+              ) : (
+                <View style={{ flex: 1 }} />
+              )}
+              {surah.number < 114 ? (
+                <PrimaryButton
+                  label={t.quranNext}
+                  onPress={() => onNavigate(surah.number + 1)}
+                  icon={<SkipForward color={colors.accentDark} size={16} />}
+                  style={{ flex: 1, marginTop: 0, minHeight: 48 }}
+                />
+              ) : null}
             </View>
           }
           renderItem={({ item, index }) => {
@@ -288,30 +418,56 @@ function SurahReader({
             const sajda = sajdaLabel(item.number, settings.madhab, t);
             return (
               <View style={[styles.ayahCard, isActive && styles.ayahCardActive]}>
-                <View style={styles.ayahTopRow}>
-                  <View style={styles.ayahBadge}>
-                    <Text style={styles.ayahBadgeText}>{item.numberInSurah}</Text>
-                  </View>
-                  <Pressable onPress={() => toggleAyah(index)} style={styles.ayahPlayButton} hitSlop={8} accessibilityRole="button">
-                    {isPlayingThis ? <Pause color={colors.accentDark} size={15} /> : <Play color={colors.accentDark} size={15} />}
-                  </Pressable>
-                </View>
-                <Text style={styles.ayahArabic}>{item.arabic}</Text>
                 {sajda ? (
-                  <View style={styles.sajdaBadge}>
-                    <Text style={styles.sajdaBadgeText}>{sajda}</Text>
+                  <View style={styles.sajdaBanner}>
+                    <Text style={styles.sajdaText}>{sajda}</Text>
                   </View>
                 ) : null}
+                <View style={styles.ayahTopRow}>
+                  <Pill label={`${surah.number}:${item.numberInSurah}`} />
+                  <View style={{ flex: 1 }} />
+                  <Pressable onPress={() => toggleAyah(index)} hitSlop={8} style={styles.ayahAction} accessibilityRole="button" accessibilityLabel={t.quranPlaySurah}>
+                    {isPlayingThis ? <Pause color={colors.accent} size={18} /> : <Volume2 color={isActive ? colors.accent : colors.textMuted} size={18} />}
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      onAyahVisible(item.numberInSurah);
+                      setBookmarked(item.numberInSurah);
+                    }}
+                    hitSlop={8}
+                    style={styles.ayahAction}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.quranMarkRead}
+                  >
+                    {bookmarked === item.numberInSurah ? <BookmarkCheck color={colors.accent} size={18} /> : <Bookmark color={colors.textMuted} size={18} />}
+                  </Pressable>
+                  <Pressable
+                    onPress={async () => {
+                      const ok = await copyText(`${item.arabic}\n\n${item.translation}\n\n(${surah.englishName}, ${surah.number}:${item.numberInSurah})`);
+                      if (ok) {
+                        setCopied(item.numberInSurah);
+                        setTimeout(() => setCopied(null), 1500);
+                      }
+                    }}
+                    hitSlop={8}
+                    style={styles.ayahAction}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.quranCopyAyah}
+                  >
+                    <Copy color={copied === item.numberInSurah ? colors.accent : colors.textMuted} size={18} />
+                  </Pressable>
+                </View>
+                <ArabicText size={arabicSize}>{item.arabic}</ArabicText>
                 {showTranslit && item.transliteration ? (
-                  <>
-                    <Text style={styles.ayahLabel}>{t.quranTransliterationLabel}</Text>
-                    <Text style={styles.ayahTransliteration}>{item.transliteration}</Text>
-                  </>
+                  <View style={styles.translitBox}>
+                    <Text style={type.label}>{t.quranTransliterationLabel}</Text>
+                    <Text style={styles.translitText}>{item.transliteration}</Text>
+                  </View>
                 ) : null}
                 {item.translation ? (
                   <>
-                    <Text style={styles.ayahLabel}>{t.quranTranslationLabel}</Text>
-                    <Text style={styles.ayahTranslation}>{item.translation}</Text>
+                    <Text style={[type.label, { color: colors.textMuted, marginTop: 14 }]}>{t.quranTranslationLabel}</Text>
+                    <Text style={styles.translationText}>{item.translation}</Text>
                   </>
                 ) : null}
               </View>
@@ -325,51 +481,51 @@ function SurahReader({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: 22, paddingBottom: 24 },
-  eyebrow: { color: colors.accent, fontSize: 11, letterSpacing: 2, fontWeight: '700' },
-  title: { color: colors.text, fontSize: 30, fontWeight: '700', marginTop: 9 },
-  searchBox: { height: 50, borderRadius: 17, backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: '#294765', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginTop: 20 },
-  input: { flex: 1, marginLeft: 10, color: colors.text, fontSize: 14 },
-  continueCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.accent, borderRadius: 18, padding: 16, marginTop: 16 },
-  continueIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: 'rgba(10,28,49,0.15)', alignItems: 'center', justifyContent: 'center' },
-  continueLabel: { color: '#254024', fontSize: 11, fontWeight: '700' },
-  continueTitle: { color: colors.accentDark, fontSize: 15, fontWeight: '700', marginTop: 2 },
+  content: { paddingHorizontal: 20, paddingBottom: 24 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 6 },
+  searchBox: { height: 52, borderRadius: 16, backgroundColor: colors.cardAlt, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginTop: 18 },
+  input: { flex: 1, marginLeft: 12, color: colors.text, fontSize: 15, fontFamily: fonts.regular },
+  continueCard: { marginTop: 16, gap: 10 },
+  continueRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  continueTitle: { color: colors.text, fontSize: 18, fontFamily: fonts.semibold, marginBottom: 2 },
+  playCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  progressTrack: { height: 6, borderRadius: 3, backgroundColor: colors.cardAlt, overflow: 'hidden' },
+  progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
+  chipScrollView: { marginHorizontal: -20, marginTop: 16, marginBottom: 12 },
+  chipScroll: { gap: 8, paddingHorizontal: 20 },
+  surahRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 10 },
+  surahRowReading: { borderLeftWidth: 3, borderLeftColor: colors.accent },
+  surahNumber: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  surahNumberReading: { backgroundColor: colors.accent },
+  surahNumberText: { color: colors.accent, fontSize: 15, fontFamily: fonts.semibold, fontVariant: ['tabular-nums'] },
+  surahNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
+  surahName: { color: colors.text, fontSize: 17, fontFamily: fonts.semibold, flexShrink: 1 },
+  readerTop: { paddingHorizontal: 20, paddingBottom: 8 },
+  readerHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
+  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  readerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+  readerTitle: { color: colors.text, fontSize: 22, fontFamily: fonts.bold, marginTop: 2 },
+  roundButton: { width: 44, height: 44, borderRadius: 22 },
   centerBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 30 },
-  stateText: { color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  retryButton: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 18 },
-  retryText: { color: colors.accentDark, fontWeight: '700', fontSize: 13 },
-  surahRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 17, borderWidth: 1, borderColor: colors.border, padding: 13, marginBottom: 9, gap: 12 },
-  surahNumber: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#1D3C54', alignItems: 'center', justifyContent: 'center' },
-  surahNumberText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
-  surahName: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  surahMeta: { color: '#8298AE', fontSize: 11, marginTop: 4 },
-  starButton: { padding: 4 },
-  surahArabic: { color: colors.accentSoft, fontSize: 18, minWidth: 40, textAlign: 'right' },
-  readerScreen: { flex: 1, backgroundColor: colors.bg },
-  readerHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingBottom: 12 },
-  readerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: '#18344F', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#31506D' },
-  readerTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  readerSubtitle: { color: colors.accent, fontSize: 14, marginTop: 2 },
-  ayahListContent: { paddingHorizontal: 18 },
-  playSurahBar: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16 },
-  playSurahText: { color: colors.accentDark, fontWeight: '700', fontSize: 13 },
-  reciterText: { color: '#254024', fontSize: 11, marginLeft: 'auto' },
-  audioError: { color: '#E8CE9A', fontSize: 12, marginTop: 8, textAlign: 'center' },
-  translitToggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingVertical: 4 },
-  translitToggleText: { color: '#D9E4EE', fontSize: 14 },
-  disclaimerBar: { marginTop: 10, backgroundColor: '#1E2E1C', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#2E4429' },
-  disclaimerText: { color: '#A9C79A', fontSize: 11, lineHeight: 16 },
-  basmala: { color: '#E9F5DE', fontSize: 26, textAlign: 'center', marginVertical: 18, writingDirection: 'rtl' },
-  ayahCard: { backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 18, marginTop: 12 },
+  readerList: { paddingHorizontal: 20, paddingTop: 8 },
+  audioCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12 },
+  audioPlay: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  audioCounter: { color: colors.accent, fontSize: 12, fontFamily: fonts.semibold, fontVariant: ['tabular-nums'] },
+  audioTrack: { width: 60, height: 4, borderRadius: 2, backgroundColor: colors.cardAlt, overflow: 'hidden' },
+  audioFill: { height: 4, backgroundColor: colors.accent },
+  optionsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  translatorChip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.cardAlt, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexShrink: 1 },
+  translatorText: { color: colors.text, fontSize: 13, fontFamily: fonts.medium },
+  translitSwitch: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  basmalaBox: { alignItems: 'center', paddingVertical: 8 },
+  navRow: { flexDirection: 'row', gap: 12, marginTop: 8, alignItems: 'center' },
+  ayahCard: { backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 16, marginTop: 12 },
   ayahCardActive: { borderColor: colors.accent },
-  ayahTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  ayahPlayButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  ayahBadge: { minWidth: 28, height: 28, paddingHorizontal: 6, borderRadius: 9, backgroundColor: '#1D3C54', alignItems: 'center', justifyContent: 'center' },
-  ayahBadgeText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
-  sajdaBadge: { backgroundColor: '#3A2E1A', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 10, marginTop: 10, borderWidth: 1, borderColor: '#5A4626' },
-  sajdaBadgeText: { color: '#E8CE9A', fontSize: 12, fontWeight: '600', lineHeight: 17 },
-  ayahArabic: { color: '#E9F5DE', fontSize: 25, lineHeight: 48, textAlign: 'right', writingDirection: 'rtl' },
-  ayahLabel: { color: '#6E9A80', fontSize: 10, fontWeight: '700', letterSpacing: 1, marginTop: 14, marginBottom: 6 },
-  ayahTransliteration: { color: '#C8D8E6', fontSize: 13, lineHeight: 20, fontStyle: 'italic' },
-  ayahTranslation: { color: '#D0DCE6', fontSize: 14, lineHeight: 21 },
+  sajdaBanner: { backgroundColor: colors.cardAlt, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, marginBottom: 12 },
+  sajdaText: { color: colors.warnText, fontSize: 12, lineHeight: 17, fontFamily: fonts.medium },
+  ayahTopRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
+  ayahAction: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  translitBox: { backgroundColor: colors.cardDeep, borderRadius: 12, padding: 12, marginTop: 12, gap: 6 },
+  translitText: { color: colors.text, fontSize: 14, lineHeight: 21, fontFamily: fonts.regular },
+  translationText: { color: '#D2DDE8', fontSize: 15, lineHeight: 23, marginTop: 6, fontFamily: fonts.regular },
 });
