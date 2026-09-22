@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X } from 'lucide-react-native';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '@/constants/theme';
 

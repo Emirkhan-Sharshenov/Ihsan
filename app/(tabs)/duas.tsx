@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { BookOpen, Check, ChevronDown, Copy, Heart, Search, Share2 } from 'lucide-react-native';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArabicText, Chip, Pill, ScreenBackground, ScreenHeader, SecondaryButton, type } from '@/components/ui';
 import { colors, fonts } from '@/constants/theme';

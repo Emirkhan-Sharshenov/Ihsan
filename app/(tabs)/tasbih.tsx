@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, Infinity as InfinityIcon, RefreshCcw, RotateCcw, Settings2, Vibrate, VibrateOff, X } from 'lucide-react-native';
-import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/AppText';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArabicText, BottomSheet, Card, Chip, IconButton, PrimaryButton, ScreenBackground, ScreenHeader, type } from '@/components/ui';

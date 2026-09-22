@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { BookOpen, Compass, CircleUserRound, HandHeart, House, RotateCcw } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/hooks/useLanguage';
 import { tabColors, fonts } from '@/constants/theme';
@@ -17,6 +18,12 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: tabColors.inactive,
         tabBarStyle: [styles.tabBar, { height: 64 + insets.bottom, paddingBottom: 8 + insets.bottom }],
         tabBarLabelStyle: styles.label,
+        // Labels are rendered by us so a large system font size cannot clip them to "Главн…".
+        tabBarLabel: ({ color, children }) => (
+          <Text style={[styles.label, { color }]} numberOfLines={1} allowFontScaling={false}>
+            {children}
+          </Text>
+        ),
         tabBarHideOnKeyboard: true,
       }}
     >
@@ -37,7 +44,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   label: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: fonts.semibold,
   },
 });

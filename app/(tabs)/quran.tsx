@@ -16,7 +16,8 @@ import {
   Type,
   Volume2,
 } from 'lucide-react-native';
-import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewToken } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, View, type ViewToken } from 'react-native';
+import { Text, TextInput } from '@/components/AppText';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArabicText, Card, Chip, IconButton, Note, Pill, PrimaryButton, ScreenBackground, ScreenHeader, SecondaryButton, Toggle, type } from '@/components/ui';

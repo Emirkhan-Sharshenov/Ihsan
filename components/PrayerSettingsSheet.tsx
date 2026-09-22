@@ -1,4 +1,5 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/AppText';
 import { LocateFixed, Minus, Plus } from 'lucide-react-native';
 import { BottomSheet, Chip, PrimaryButton, Toggle } from './ui';
 import { colors, fonts } from '@/constants/theme';

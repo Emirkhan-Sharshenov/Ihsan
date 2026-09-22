@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { Infinity as InfinityIcon, LocateFixed, MapPin, Navigation, RefreshCw, Ruler, SlidersHorizontal } from 'lucide-react-native';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/AppText';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { Coordinates, Qibla } from 'adhan';

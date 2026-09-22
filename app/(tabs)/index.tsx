@@ -24,7 +24,8 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react-native';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrayerSettingsSheet } from '@/components/PrayerSettingsSheet';
 import { ArabicText, Card, IconButton, Note, Pill, ScreenBackground, ScreenHeader, type } from '@/components/ui';
