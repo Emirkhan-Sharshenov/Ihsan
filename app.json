@@ -67,7 +67,9 @@
           "color": "#A9F06B"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "./plugins/withoutAudioServices",
+      "./plugins/withUploadSigning"
     ],
     "experiments": {
       "typedRoutes": true

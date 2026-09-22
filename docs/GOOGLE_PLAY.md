@@ -7,6 +7,29 @@
 
 ## 2. Сборка
 
+### Локально (без EAS)
+
+Подпись берётся из `android/keystore.properties` (файл и сам `.jks` лежат вне репозитория — храните их копию!). Формат файла:
+
+```properties
+storeFile=C:/путь/к/ihsan-upload-key.jks
+storePassword=…
+keyAlias=ihsan-upload
+keyPassword=…
+```
+
+```bash
+npx expo prebuild --platform android
+cd android
+./gradlew bundleRelease   # .aab для Google Play
+./gradlew assembleRelease # .apk для теста на телефоне
+```
+
+Если сборка упадёт с «Java heap space», увеличьте память в `android/gradle.properties`:
+`org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m` (файл создаётся заново при `prebuild`).
+
+### Через EAS (сборка на серверах Expo)
+
 ```bash
 npm install -g eas-cli
 eas login
@@ -52,7 +75,7 @@ eas build --platform android --profile production
 
 - **Реклама**: нет. **Целевая аудитория**: 13+ (не выбирайте детей младше 13, иначе действуют дополнительные требования).
 - **Возрастной рейтинг**: заполните анкету честно (насилия, азартных игр и т. п. нет).
-- **Разрешения**: геолокация (время намаза и кыбла), уведомления. Точные будильники не используются, фоновой геолокации нет.
+- **Разрешения**: геолокация (время намаза и кыбла), уведомления. Точные будильники не используются, фоновой геолокации нет. Фоновые службы аудио удалены плагином `plugins/withoutAudioServices.js`, поэтому декларация foreground service не нужна.
 - Новые личные аккаунты разработчика должны пройти **закрытое тестирование: не менее 12 тестировщиков в течение 14 дней** перед выпуском в продакшн.
 
 ## 7. Перед выпуском — проверка текстов
