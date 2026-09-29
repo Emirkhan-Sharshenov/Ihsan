@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ихсан — намаз, Коран, дуа</title>
+<meta name="description" content="Ихсан — время намаза по муфтияту Кыргызстана, Коран с переводом и аудио, дуа с источниками, кыбла и тасбих. Бесплатно, без рекламы и регистрации." />
+<link rel="icon" href="favicon.png" />
+<meta property="og:title" content="Ихсан — намаз, Коран, дуа" />
+<meta property="og:description" content="Время намаза по муфтияту КР, Коран с переводом, дуа с источниками, кыбла и тасбих. Без рекламы." />
+<meta property="og:image" content="icon.png" />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#071526; --bg-top:#102D49; --card:#10243C; --card-alt:#122B46; --card-deep:#0B1B2E;
+    --border:#203D5A; --accent:#A9F06B; --accent-soft:#D7F3BE; --accent-muted:#2A4A22;
+    --text:#F4F8FC; --muted:#849AAF; --muted-dark:#72889C; --active:#234D52;
+    --radius:20px; --maxw:1120px;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --arabic:'Amiri',serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; overflow-x:hidden; line-height:1.6;
+  }
+  h1,h2,h3{line-height:1.15; margin:0; letter-spacing:-0.02em}
+  a{color:inherit}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 20px}
+
+  /* ---------- background ---------- */
+  .bg{position:fixed; inset:0; z-index:-1; overflow:hidden}
+  .bg::before{
+    content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(900px 600px at 78% -10%, rgba(169,240,107,.13), transparent 70%),
+      radial-gradient(900px 700px at 8% 0%, rgba(16,45,73,.95), transparent 65%),
+      linear-gradient(180deg,#102D49 0%,#071526 55%,#071526 100%);
+  }
+  .stars{position:absolute; inset:0}
+  .star{
+    position:absolute; width:2px; height:2px; border-radius:50%; background:#fff; opacity:.35;
+    animation:twinkle 4s ease-in-out infinite;
+  }
+  @keyframes twinkle{0%,100%{opacity:.12; transform:scale(.7)}50%{opacity:.8; transform:scale(1.15)}}
+  .glow{
+    position:absolute; border-radius:50%; filter:blur(90px); opacity:.20;
+    background:var(--accent); animation:drift 18s ease-in-out infinite alternate;
+  }
+  .glow.a{width:420px;height:420px; top:-80px; right:-60px}
+  .glow.b{width:360px;height:360px; top:52%; left:-120px; animation-delay:-7s; background:#5F8872}
+  @keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-40px,60px,0) scale(1.15)}}
+
+  /* ---------- nav ---------- */
+  header{
+    position:sticky; top:0; z-index:50; backdrop-filter:blur(14px);
+    background:rgba(7,21,38,.72); border-bottom:1px solid transparent; transition:border-color .3s;
+  }
+  header.stuck{border-bottom-color:var(--border)}
+  .nav{display:flex; align-items:center; gap:14px; height:66px}
+  .brand{display:flex; align-items:center; gap:11px; font-weight:700; letter-spacing:-.01em; text-decoration:none}
+  .brand img{width:34px;height:34px;border-radius:10px; box-shadow:0 4px 14px rgba(0,0,0,.45)}
+  .nav-links{margin-left:auto; display:flex; gap:26px; align-items:center}
+  .nav-links a{color:var(--muted); text-decoration:none; font-size:.92rem; font-weight:500; transition:color .2s}
+  .nav-links a:hover{color:var(--accent)}
+  @media(max-width:760px){.nav-links a:not(.btn){display:none}}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex; align-items:center; gap:10px; padding:13px 22px; border-radius:999px;
+    font-weight:600; font-size:.95rem; text-decoration:none; border:1px solid transparent;
+    cursor:pointer; transition:transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .25s, background .2s, border-color .2s;
+    white-space:nowrap;
+  }
+  .btn-primary{background:var(--accent); color:#071526; box-shadow:0 8px 26px rgba(169,240,107,.26)}
+  .btn-primary:hover{transform:translateY(-2px); box-shadow:0 14px 36px rgba(169,240,107,.4)}
+  .btn-ghost{border-color:var(--border); color:var(--text); background:rgba(16,36,60,.6)}
+  .btn-ghost:hover{border-color:var(--accent); color:var(--accent); transform:translateY(-2px)}
+  .btn svg{width:18px;height:18px}
+  .btn-sm{padding:9px 17px; font-size:.86rem}
+
+  /* ---------- hero ---------- */
+  .hero{display:grid; grid-template-columns:1.05fr .95fr; gap:52px; align-items:center; padding:74px 0 96px}
+  @media(max-width:920px){.hero{grid-template-columns:1fr; gap:48px; padding:52px 0 72px; text-align:center}}
+  .pill{
+    display:inline-flex; align-items:center; gap:9px; padding:7px 15px 7px 11px; border-radius:999px;
+    background:rgba(169,240,107,.09); border:1px solid rgba(169,240,107,.28);
+    color:var(--accent-soft); font-size:.8rem; font-weight:600; letter-spacing:.01em;
+  }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--accent); animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(169,240,107,.6)}50%{box-shadow:0 0 0 7px rgba(169,240,107,0)}}
+  .hero h1{font-size:clamp(2.5rem,5.6vw,4rem); font-weight:800; margin:22px 0 0}
+  .hero h1 .grad{
+    background:linear-gradient(100deg,var(--accent) 10%,#D7F3BE 55%,#8FD6A8 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero p.lead{color:var(--muted); font-size:1.09rem; max-width:34em; margin:20px 0 0}
+  @media(max-width:920px){.hero p.lead{margin-left:auto;margin-right:auto}}
+  .cta{display:flex; gap:13px; margin-top:32px; flex-wrap:wrap}
+  @media(max-width:920px){.cta{justify-content:center}}
+  .facts{display:flex; gap:30px; margin-top:42px; flex-wrap:wrap}
+  @media(max-width:920px){.facts{justify-content:center}}
+  .fact b{display:block; font-size:1.55rem; font-weight:700; color:var(--accent-soft); letter-spacing:-.02em}
+  .fact span{font-size:.82rem; color:var(--muted-dark)}
+
+  /* ---------- phone ---------- */
+  .phone-stage{display:flex; justify-content:center; perspective:1400px}
+  .phone{
+    position:relative; width:320px; height:650px; border-radius:46px; padding:11px;
+    background:linear-gradient(160deg,#2b4362,#0d1d31 55%);
+    box-shadow:0 40px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(169,240,107,.12), inset 0 0 0 1px rgba(255,255,255,.06);
+    animation:float 7s ease-in-out infinite;
+    transform-style:preserve-3d;
+  }
+  @keyframes float{0%,100%{transform:translateY(0) rotateY(-7deg) rotateX(2deg)}50%{transform:translateY(-16px) rotateY(-3deg) rotateX(0deg)}}
+  @media(max-width:920px){.phone{animation:none; transform:none; width:300px; height:610px}}
+  .screen{
+    position:relative; width:100%; height:100%; border-radius:36px; overflow:hidden;
+    background:linear-gradient(180deg,#102D49,#071526 45%);
+    display:flex; flex-direction:column;
+  }
+  .notch{
+    position:absolute; top:9px; left:50%; transform:translateX(-50%); width:96px; height:22px;
+    border-radius:999px; background:#04101d; z-index:6;
+  }
+  .statusbar{display:flex; justify-content:space-between; padding:13px 20px 4px; font-size:.68rem; color:var(--muted); font-weight:600}
+  .view{flex:1; overflow:hidden; padding:6px 15px 4px; position:relative}
+  .pane{display:none; animation:paneIn .42s cubic-bezier(.2,.8,.2,1)}
+  .pane.on{display:block}
+  @keyframes paneIn{from{opacity:0; transform:translateY(14px) scale(.98)}to{opacity:1; transform:none}}
+  .p-title{font-size:.95rem; font-weight:700; margin:6px 2px 12px}
+  .p-sub{font-size:.68rem; color:var(--muted-dark); margin:-8px 2px 12px}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:13px 14px; margin-bottom:9px}
+  .hero-card{
+    background:linear-gradient(145deg,#1b4a45,#10243C 70%); border-color:#2f6a5c;
+    text-align:center; padding:18px 14px 16px;
+  }
+  .hero-card .lbl{font-size:.66rem; color:var(--accent-soft); letter-spacing:.14em; text-transform:uppercase; font-weight:700}
+  .hero-card .big{font-size:2.15rem; font-weight:700; letter-spacing:-.03em; margin-top:3px; font-variant-numeric:tabular-nums}
+  .hero-card .cd{font-size:.72rem; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums}
+  .row{display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-radius:12px; margin-bottom:6px; background:var(--card-deep); border:1px solid transparent; font-size:.78rem}
+  .row.now{background:var(--active); border-color:#3b7a72}
+  .row .nm{color:var(--muted); font-weight:500}
+  .row.now .nm{color:var(--accent-soft); font-weight:600}
+  .row .tm{font-weight:700; font-variant-numeric:tabular-nums; font-size:.84rem}
+  .ar{font-family:var(--arabic); direction:rtl; text-align:right; font-size:1.18rem; line-height:2; color:#fff}
+  .tr{font-size:.72rem; color:var(--muted); margin-top:7px}
+  .src{font-size:.62rem; color:var(--accent); margin-top:8px; font-weight:600}
+  .chip{display:inline-block; padding:5px 11px; border-radius:999px; background:var(--accent-muted); color:var(--accent-soft); font-size:.66rem; font-weight:600; margin:0 5px 6px 0}
+  .surah{display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius:12px; background:var(--card-deep); margin-bottom:6px}
+  .surah .n{width:26px;height:26px;border-radius:8px; background:var(--accent-muted); color:var(--accent-soft); display:grid; place-items:center; font-size:.66rem; font-weight:700; flex:none}
+  .surah .t{font-size:.78rem; font-weight:600}
+  .surah .s{font-size:.63rem; color:var(--muted-dark)}
+  .surah .aname{margin-left:auto; font-family:var(--arabic); font-size:1rem; color:var(--accent-soft)}
+
+  /* compass */
+  .compass{width:190px;height:190px;margin:14px auto 6px; position:relative}
+  .compass .ring{position:absolute; inset:0; border-radius:50%; border:1px solid var(--border); background:radial-gradient(circle at 50% 40%, #16324f, #0a1a2c)}
+  .compass .ring2{position:absolute; inset:18px; border-radius:50%; border:1px dashed rgba(169,240,107,.28)}
+  .needle{position:absolute; inset:0; transition:transform 1.1s cubic-bezier(.2,.8,.2,1)}
+  .needle .arrow{
+    position:absolute; left:50%; top:16px; transform:translateX(-50%);
+    width:0;height:0; border-left:11px solid transparent; border-right:11px solid transparent; border-bottom:40px solid var(--accent);
+    filter:drop-shadow(0 0 10px rgba(169,240,107,.65));
+  }
+  .needle .kaaba{position:absolute; left:50%; top:52px; transform:translateX(-50%); font-size:1rem}
+  .compass .ctr{position:absolute; inset:0; display:grid; place-items:center; text-align:center}
+  .compass .ctr b{display:block; font-size:1.4rem; font-variant-numeric:tabular-nums}
+  .compass .ctr span{font-size:.62rem; color:var(--muted)}
+  .cardinal{position:absolute; font-size:.6rem; color:var(--muted-dark); font-weight:700}
+  .cardinal.n{top:5px; left:50%; transform:translateX(-50%)}
+  .cardinal.s{bottom:5px; left:50%; transform:translateX(-50%)}
+  .cardinal.e{right:6px; top:50%; transform:translateY(-50%)}
+  .cardinal.w{left:6px; top:50%; transform:translateY(-50%)}
+
+  /* tasbih */
+  .beads{text-align:center; padding:8px 0 0}
+  .beads .count{font-size:3.4rem; font-weight:700; letter-spacing:-.04em; font-variant-numeric:tabular-nums; line-height:1.1}
+  .beads .of{font-size:.7rem; color:var(--muted); margin-bottom:12px}
+  .tapper{
+    width:132px;height:132px;border-radius:50%; margin:6px auto 10px; border:1px solid #3b7a72; cursor:pointer;
+    background:radial-gradient(circle at 50% 35%, #245049, #0f2338); display:grid; place-items:center;
+    font-family:var(--arabic); font-size:1.3rem; color:var(--accent-soft); user-select:none;
+    transition:transform .12s, box-shadow .25s;
+  }
+  .tapper:active{transform:scale(.93); box-shadow:0 0 0 14px rgba(169,240,107,.08)}
+  .prog{height:5px; border-radius:999px; background:var(--card-deep); overflow:hidden; margin:0 4px}
+  .prog i{display:block; height:100%; background:linear-gradient(90deg,var(--accent),#D7F3BE); transition:width .25s}
+
+  /* tabbar */
+  .tabbar{display:flex; border-top:1px solid var(--border); background:var(--card); padding:8px 2px 14px}
+  .tab{flex:1; background:none; border:0; color:var(--muted); font:inherit; font-size:.58rem; font-weight:600;
+       display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:4px 0; transition:color .2s}
+  .tab svg{width:19px;height:19px; transition:transform .25s}
+  .tab.on{color:var(--accent)}
+  .tab.on svg{transform:translateY(-2px) scale(1.1)}
+
+  .hint{text-align:center; color:var(--muted-dark); font-size:.78rem; margin-top:20px}
+  .hint b{color:var(--accent-soft)}
+
+  /* ---------- sections ---------- */
+  section{padding:88px 0}
+  .sec-head{text-align:center; max-width:640px; margin:0 auto 52px}
+  .sec-head .kicker{color:var(--accent); font-size:.76rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase}
+  .sec-head h2{font-size:clamp(1.8rem,3.6vw,2.6rem); font-weight:800; margin:12px 0 0}
+  .sec-head p{color:var(--muted); margin:14px 0 0}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); gap:18px}
+  .feature{
+    background:linear-gradient(160deg,rgba(18,43,70,.9),rgba(11,27,46,.85)); border:1px solid var(--border);
+    border-radius:var(--radius); padding:26px; position:relative; overflow:hidden;
+    transition:transform .3s cubic-bezier(.2,.8,.2,1), border-color .3s, box-shadow .3s;
+  }
+  .feature::after{
+    content:''; position:absolute; inset:0; opacity:0; transition:opacity .35s;
+    background:radial-gradient(420px 200px at var(--mx,50%) var(--my,0%), rgba(169,240,107,.12), transparent 70%);
+    pointer-events:none;
+  }
+  .feature:hover{transform:translateY(-6px); border-color:rgba(169,240,107,.42); box-shadow:0 22px 48px rgba(0,0,0,.42)}
+  .feature:hover::after{opacity:1}
+  .feature .ic{
+    width:46px;height:46px;border-radius:14px; display:grid; place-items:center; margin-bottom:16px;
+    background:rgba(169,240,107,.1); border:1px solid rgba(169,240,107,.26); color:var(--accent);
+  }
+  .feature .ic svg{width:23px;height:23px}
+  .feature h3{font-size:1.06rem; font-weight:700}
+  .feature p{color:var(--muted); font-size:.92rem; margin:9px 0 0}
+
+  /* download */
+  .dl{
+    background:linear-gradient(150deg,rgba(35,77,82,.55),rgba(11,27,46,.9) 62%);
+    border:1px solid var(--border); border-radius:28px; padding:54px 36px; text-align:center; position:relative; overflow:hidden;
+  }
+  .dl::before{
+    content:''; position:absolute; width:520px;height:520px; border-radius:50%; top:-320px; left:50%;
+    transform:translateX(-50%); background:radial-gradient(circle,rgba(169,240,107,.2),transparent 68%);
+  }
+  .dl h2{font-size:clamp(1.7rem,3.4vw,2.4rem); font-weight:800; position:relative}
+  .dl p{color:var(--muted); margin:14px auto 0; max-width:46em; position:relative}
+  .dl .cta{justify-content:center; margin-top:30px; position:relative}
+  .meta{display:flex; gap:22px; justify-content:center; flex-wrap:wrap; margin-top:26px; font-size:.8rem; color:var(--muted-dark); position:relative}
+  .meta span{display:inline-flex; align-items:center; gap:7px}
+  .meta svg{width:15px;height:15px; color:var(--accent)}
+  .install{
+    margin-top:34px; text-align:left; max-width:620px; margin-left:auto; margin-right:auto;
+    border:1px solid var(--border); border-radius:16px; background:rgba(7,21,38,.6); position:relative;
+  }
+  .install summary{cursor:pointer; padding:15px 20px; font-weight:600; font-size:.92rem; list-style:none; display:flex; align-items:center; gap:10px}
+  .install summary::-webkit-details-marker{display:none}
+  .install summary::before{content:'＋'; color:var(--accent); font-weight:700}
+  .install[open] summary::before{content:'－'}
+  .install ol{margin:0; padding:0 22px 20px 44px; color:var(--muted); font-size:.9rem}
+  .install li{margin-bottom:7px}
+
+  /* faq */
+  .faq{max-width:760px; margin:0 auto}
+  .qa{border:1px solid var(--border); border-radius:16px; background:rgba(16,36,60,.55); margin-bottom:11px; overflow:hidden; transition:border-color .25s}
+  .qa[open]{border-color:rgba(169,240,107,.35)}
+  .qa summary{cursor:pointer; padding:17px 20px; font-weight:600; list-style:none; display:flex; gap:12px; align-items:flex-start}
+  .qa summary::-webkit-details-marker{display:none}
+  .qa summary::after{content:'⌄'; margin-left:auto; color:var(--accent); transition:transform .25s; font-size:1.2rem; line-height:1}
+  .qa[open] summary::after{transform:rotate(180deg)}
+  .qa p{margin:0; padding:0 20px 18px; color:var(--muted); font-size:.93rem}
+
+  footer{border-top:1px solid var(--border); padding:40px 0; margin-top:20px}
+  .foot{display:flex; gap:18px; align-items:center; flex-wrap:wrap; color:var(--muted-dark); font-size:.86rem}
+  .foot a{color:var(--muted); text-decoration:none; transition:color .2s}
+  .foot a:hover{color:var(--accent)}
+  .foot .sp{margin-left:auto}
+  .ayah{font-family:var(--arabic); color:var(--accent-soft); font-size:1.05rem}
+
+  /* reveal */
+  .rv{opacity:0; transform:translateY(26px); transition:opacity .7s cubic-bezier(.2,.8,.2,1), transform .7s cubic-bezier(.2,.8,.2,1)}
+  .rv.in{opacity:1; transform:none}
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important; transition-duration:.01ms !important}
+    .rv{opacity:1; transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="bg"><div class="stars" id="stars"></div><div class="glow a"></div><div class="glow b"></div></div>
+
+<header id="hdr">
+  <div class="wrap nav">
+    <a class="brand" href="#top"><img src="icon.png" alt="" /> Ихсан</a>
+    <nav class="nav-links">
+      <a href="#features">Возможности</a>
+      <a href="#try">Как выглядит</a>
+      <a href="#faq">Вопросы</a>
+      <a class="btn btn-primary btn-sm" href="#download">Скачать</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <span class="pill"><i class="dot"></i> Бесплатно · без рекламы · без регистрации</span>
+        <h1>Намаз, Коран и дуа —<br /><span class="grad">в одном приложении</span></h1>
+        <p class="lead">
+          Время намаза по официальному расписанию Духовного управления мусульман Кыргызстана,
+          Коран с переводом и аудио, дуа с указанием источника, кыбла и тасбих.
+          На русском и кыргызском языках.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="#download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Скачать для Android
+          </a>
+          <a class="btn btn-ghost" href="#try">Посмотреть интерфейс</a>
+        </div>
+        <div class="facts">
+          <div class="fact"><b>114</b><span>сур с переводом</span></div>
+          <div class="fact"><b>58</b><span>дуа с источниками</span></div>
+          <div class="fact"><b>99</b><span>имён Аллаха</span></div>
+          <div class="fact"><b>0 ₽</b><span>навсегда</span></div>
+        </div>
+      </div>
+
+      <!-- interactive phone -->
+      <div class="phone-stage" id="try">
+        <div class="phone">
+          <div class="screen">
+            <div class="notch"></div>
+            <div class="statusbar"><span id="clock">—:—</span><span>▮▮▮ 􀛨</span></div>
+            <div class="view">
+
+              <!-- НАМАЗ -->
+              <div class="pane on" data-pane="home">
+                <div class="p-title">Бишкек</div>
+                <div class="p-sub">Расписание муфтията КР · <span id="hijri">—</span></div>
+                <div class="card hero-card">
+                  <div class="lbl">Следующий намаз</div>
+                  <div class="big" id="nextName">Аср</div>
+                  <div class="cd" id="nextIn">через —</div>
+                </div>
+                <div class="row" data-p="Багымдат"><span class="nm">Багымдат</span><span class="tm">05:12</span></div>
+                <div class="row" data-p="Күн чыгуу"><span class="nm">Восход</span><span class="tm">06:44</span></div>
+                <div class="row" data-p="Бешим"><span class="nm">Бешим</span><span class="tm">12:38</span></div>
+                <div class="row now" data-p="Аср"><span class="nm">Аср</span><span class="tm">16:21</span></div>
+                <div class="row" data-p="Шам"><span class="nm">Шам</span><span class="tm">18:29</span></div>
+                <div class="row" data-p="Куптан"><span class="nm">Куптан</span><span class="tm">19:52</span></div>
+              </div>
+
+              <!-- КОРАН -->
+              <div class="pane" data-pane="quran">
+                <div class="p-title">Коран</div>
+                <div class="p-sub">Перевод Э. Кулиева и Ш. Хакимова · аудио</div>
+                <div class="surah"><i class="n">1</i><div><div class="t">Аль-Фатиха</div><div class="s">Открывающая · 7 аятов</div></div><span class="aname">الفاتحة</span></div>
+                <div class="surah"><i class="n">2</i><div><div class="t">Аль-Бакара</div><div class="s">Корова · 286 аятов</div></div><span class="aname">البقرة</span></div>
+                <div class="surah"><i class="n">18</i><div><div class="t">Аль-Кахф</div><div class="s">Пещера · 110 аятов</div></div><span class="aname">الكهف</span></div>
+                <div class="card" style="margin-top:10px">
+                  <div class="ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+                  <div class="tr">Bismi-Llāhi r-Raḥmāni r-Raḥīm<br />«Во имя Аллаха, Милостивого, Милосердного»</div>
+                </div>
+              </div>
+
+              <!-- ДУА -->
+              <div class="pane" data-pane="duas">
+                <div class="p-title">Дуа</div>
+                <div class="p-sub">Из Корана и достоверной Сунны</div>
+                <div>
+                  <span class="chip">Утро и вечер</span><span class="chip">Перед сном</span>
+                  <span class="chip">Еда</span><span class="chip">Путешествие</span><span class="chip">Прощение</span>
+                </div>
+                <div class="card">
+                  <div class="ar">رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ</div>
+                  <div class="tr">«Господь наш! Одари нас добром в этом мире и добром в Последней жизни и защити нас от наказания Огня»</div>
+                  <div class="src">Коран, 2:201</div>
+                </div>
+              </div>
+
+              <!-- ТАСБИХ -->
+              <div class="pane" data-pane="tasbih">
+                <div class="p-title">Тасбих</div>
+                <div class="p-sub">Счёт сохраняется между запусками</div>
+                <div class="beads">
+                  <div class="count" id="tCount">0</div>
+                  <div class="of">из 33</div>
+                  <div class="tapper" id="tapper">سُبْحَانَ ٱللَّه</div>
+                  <div class="prog"><i id="tProg" style="width:0%"></i></div>
+                  <div class="of" style="margin-top:10px">Нажмите на круг</div>
+                </div>
+              </div>
+
+              <!-- КЫБЛА -->
+              <div class="pane" data-pane="qibla">
+                <div class="p-title">Кыбла</div>
+                <div class="p-sub">По истинному северу, с учётом магнитного склонения</div>
+                <div class="compass" id="compass">
+                  <div class="ring"></div><div class="ring2"></div>
+                  <span class="cardinal n">С</span><span class="cardinal e">В</span><span class="cardinal s">Ю</span><span class="cardinal w">З</span>
+                  <div class="needle" id="needle"><div class="arrow"></div><div class="kaaba">🕋</div></div>
+                  <div class="ctr"><div><b id="qDeg">245°</b><span>до Каабы 4005 км</span></div></div>
+                </div>
+                <div class="row now" style="margin-top:8px"><span class="nm">Поверните телефон к стрелке</span><span class="tm">±2°</span></div>
+              </div>
+
+            </div>
+            <div class="tabbar" id="tabbar">
+              <button class="tab on" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2 12 3l9 7.2V21H3z"/><path d="M9 21v-7h6v7"/></svg>Намаз</button>
+              <button class="tab" data-go="quran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5S9.5 4 4 4v14c5.5 0 8 2.5 8 2.5S14.5 18 20 18V4c-5.5 0-8 2.5-8 2.5z"/><path d="M12 6.5v14"/></svg>Коран</button>
+              <button class="tab" data-go="duas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.2-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.8-7 9-7 9z"/></svg>Дуа</button>
+              <button class="tab" data-go="tasbih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Тасбих</button>
+              <button class="tab" data-go="qibla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 5.3-5.3 2.2 2.2-5.3z"/></svg>Кыбла</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="hint">Это <b>живой макет</b> — переключайте разделы внизу «телефона» и нажимайте на тасбих.</p>
+  </div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <div class="kicker">Возможности</div>
+        <h2>Всё, что нужно в течение дня</h2>
+        <p>Без лишнего: ни рекламы, ни аккаунтов, ни платных подписок.</p>
+      </div>
+      <div class="grid">
+        <div class="feature rv">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+          <h3>Точное время намаза</h3>
+          <p>Для Кыргызстана — официальное расписание муфтията КР. Для России — метод ДУМ РФ. Для остальных мест — астрономический расчёт по вашим координатам.</p>
+        </div>
+        <div class="feature rv">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5S9.5 4 4 4v14c5.5 0 8 2.5 8 2.5S14.5 18 20 18V4c-5.5 0-8 2.5-8 2.5z"/><path d="M12 6.5v14"/></svg></div>
+          <h3>Коран с переводом и аудио</h3>
+          <p>Арабский текст, перевод смыслов Э. Кулиева (русский) и Ш. Хакимова (кыргызский), транслитерация и чтение Мишари Рашида аль-Афаси. Открытые суры доступны без интернета.</p>
+        </div>
+        <div class="feature rv">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.2-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.8-7 9-7 9z"/></svg></div>
+          <h3>Дуа с источниками</h3>
+          <p>58 дуа по категориям — каждая с ссылкой на аят или хадис с номером, чтобы вы могли проверить сами.</p>
+        </div>
+        <div class="feature rv">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 5.3-5.3 2.2 2.2-5.3z"/></svg></div>
+          <h3>Кыбла по истинному северу</h3>
+          <p>Направление на Каабу рассчитывается по формуле начального азимута большого круга, а компас учитывает магнитное склонение вашего места.</p>
+        </div>
+        <div class="feature rv">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8V6a6 6 0 0 1 12 0v2"/><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M9 20v1M15 20v1"/></svg></div>
+          <h3>Уведомления о намазе</h3>
+          <p>Азан в начале намаза и напоминание заранее. Любой намаз можно отключить отдельно.</p>
+        </div>
+        <div class="feature rv">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>
+          <h3>Ханафитский и шафиитский Аср</h3>
+          <p>Выбор мазхаба, правило высоких широт и ручная поправка минут — чтобы совпадало с вашей мечетью.</p>
+        </div>
+        <div class="feature rv">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.9 4.9 7 7M17 17l2.1 2.1M3 12h3M18 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/><circle cx="12" cy="12" r="3.5"/></svg></div>
+          <h3>99 имён Аллаха и тасбих</h3>
+          <p>Имена с транскрипцией и значением, счётчик зикра с сохранением счёта и тактильной отдачей.</p>
+        </div>
+        <div class="feature rv">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5a16 16 0 0 1 0 14A16 16 0 0 1 12 5z"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <h3>Русский и кыргызский</h3>
+          <p>Полностью переведённый интерфейс, включая названия сур и намазов в привычной форме.</p>
+        </div>
+        <div class="feature rv">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v6c0 5-3.4 7.6-8 9-4.6-1.4-8-4-8-9V7z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Ваши данные остаются у вас</h3>
+          <p>Нет аккаунтов, аналитики и рекламных идентификаторов. Настройки хранятся только на телефоне.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section id="download">
+    <div class="wrap">
+      <div class="dl rv">
+        <h2>Скачать Ихсан</h2>
+        <p>Android 7.0 и новее. APK можно установить прямо сейчас, версия для Google Play готовится к публикации.</p>
+        <div class="cta">
+          <a class="btn btn-primary" id="apkBtn" href="https://github.com/Emirkhan-Sharshenov/Ishan/releases/latest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Скачать APK
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/Emirkhan-Sharshenov/Ishan">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.1-1.47-1.1-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.4 9.4 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.6 1.03 2.69 0 3.85-2.34 4.7-4.57 4.94.36.31.68.92.68 1.86v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+            Исходный код
+          </a>
+        </div>
+        <div class="meta">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg> Без рекламы</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg> Без регистрации</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg> Открытый код</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg> Работает без интернета</span>
+        </div>
+        <details class="install">
+          <summary>Как установить APK на Android</summary>
+          <ol>
+            <li>Нажмите «Скачать APK» и откройте файл в папке загрузок.</li>
+            <li>Android спросит разрешение на установку из этого источника — разрешите для браузера.</li>
+            <li>Нажмите «Установить», затем «Открыть».</li>
+            <li>Разрешите геолокацию и уведомления, чтобы работали время намаза и кыбла.</li>
+          </ol>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <div class="kicker">Вопросы</div>
+        <h2>Коротко о главном</h2>
+      </div>
+      <div class="faq">
+        <details class="qa rv"><summary>Откуда берётся время намаза?</summary>
+          <p>Для городов Кыргызстана приложение загружает официальное расписание Духовного управления мусульман КР. Если интернета нет, используется астрономический расчёт, настроенный так, чтобы совпадать с этим расписанием. Для России применяется метод ДУМ РФ, для других стран — расчёт по вашим координатам.</p></details>
+        <details class="qa rv"><summary>Приложение следит за моим местоположением?</summary>
+          <p>Нет. Координаты используются на устройстве для расчёта времени и кыблы. Если вы в Кыргызстане и выбрали «Моё местоположение», координаты округляются примерно до 10 км и отправляются только на сервер муфтията для получения расписания. Ни аналитики, ни рекламных идентификаторов в приложении нет.</p></details>
+        <details class="qa rv"><summary>Насколько можно доверять текстам дуа?</summary>
+          <p>У каждой дуа указан источник — аят или хадис с номером, чтобы вы могли проверить самостоятельно. Тексты без надёжного источника из приложения убраны. При любых сомнениях сверяйтесь со своим имамом или устазом.</p></details>
+        <details class="qa rv"><summary>Нужен ли интернет?</summary>
+          <p>Нет для основного: расписание кэшируется, суры, которые вы открывали, сохраняются, дуа и 99 имён встроены в приложение. Интернет нужен только для аудио новых сур и обновления расписания.</p></details>
+        <details class="qa rv"><summary>Когда будет версия для iPhone?</summary>
+          <p>Приложение написано так, что работает и на iOS, но публикация в App Store требует платного аккаунта разработчика Apple. Она запланирована после выхода Android-версии.</p></details>
+        <details class="qa rv"><summary>Как сообщить об ошибке или неточности?</summary>
+          <p>Откройте issue на GitHub или напишите на почту, указанную на странице приложения. Замечания по религиозным текстам особенно важны — они проверяются в первую очередь.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span class="ayah">وَٱللَّهُ خَيْرُ ٱلرَّٰزِقِينَ</span>
+    <span class="sp"></span>
+    <a href="privacy-policy.html">Политика конфиденциальности</a>
+    <a href="https://github.com/Emirkhan-Sharshenov/Ishan">GitHub</a>
+    <span>© 2026 Ихсан</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* stars */
+  var stars = document.getElementById('stars'), frag = document.createDocumentFragment();
+  for (var i = 0; i < 70; i++) {
+    var s = document.createElement('i');
+    s.className = 'star';
+    s.style.left = (Math.random()*100).toFixed(2) + '%';
+    s.style.top = (Math.random()*70).toFixed(2) + '%';
+    s.style.animationDelay = (Math.random()*4).toFixed(2) + 's';
+    s.style.opacity = (0.15 + Math.random()*0.5).toFixed(2);
+    frag.appendChild(s);
+  }
+  stars.appendChild(frag);
+
+  /* sticky header */
+  var hdr = document.getElementById('hdr');
+  addEventListener('scroll', function(){ hdr.classList.toggle('stuck', scrollY > 8); }, {passive:true});
+
+  /* reveal on scroll */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e, idx){
+      if (e.isIntersecting) {
+        var el = e.target;
+        setTimeout(function(){ el.classList.add('in'); }, idx * 70);
+        io.unobserve(el);
+      }
+    });
+  }, {threshold:0.12, rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
+
+  /* feature hover glow follows cursor */
+  document.querySelectorAll('.feature').forEach(function(card){
+    card.addEventListener('pointermove', function(ev){
+      var r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (ev.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (ev.clientY - r.top) + 'px');
+    });
+  });
+
+  /* phone tabs */
+  var panes = document.querySelectorAll('.pane');
+  document.getElementById('tabbar').addEventListener('click', function(ev){
+    var btn = ev.target.closest('.tab');
+    if (!btn) return;
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('on', t === btn); });
+    panes.forEach(function(p){ p.classList.toggle('on', p.dataset.pane === btn.dataset.go); });
+    if (btn.dataset.go === 'qibla') spinNeedle();
+  });
+
+  /* live clock + next prayer countdown from the mock schedule */
+  var SCHEDULE = [
+    ['Багымдат', 5, 12], ['Бешим', 12, 38], ['Аср', 16, 21], ['Шам', 18, 29], ['Куптан', 19, 52]
+  ];
+  var two = function(n){ return n < 10 ? '0' + n : '' + n; };
+  function tick(){
+    var now = new Date();
+    document.getElementById('clock').textContent = two(now.getHours()) + ':' + two(now.getMinutes());
+
+    var mins = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60, next = null;
+    for (var i = 0; i < SCHEDULE.length; i++) {
+      var m = SCHEDULE[i][1]*60 + SCHEDULE[i][2];
+      if (m > mins) { next = {name: SCHEDULE[i][0], left: m - mins}; break; }
+    }
+    if (!next) next = {name: SCHEDULE[0][0], left: 24*60 - mins + SCHEDULE[0][1]*60 + SCHEDULE[0][2]};
+
+    document.getElementById('nextName').textContent = next.name;
+    var h = Math.floor(next.left/60), mm = Math.floor(next.left%60), ss = Math.floor((next.left*60)%60);
+    document.getElementById('nextIn').textContent = 'через ' + (h ? h + ' ч ' : '') + mm + ' мин ' + two(ss) + ' с';
+
+    /* highlight the current prayer row */
+    var currentName = null;
+    for (var j = SCHEDULE.length - 1; j >= 0; j--) {
+      if (SCHEDULE[j][1]*60 + SCHEDULE[j][2] <= mins) { currentName = SCHEDULE[j][0]; break; }
+    }
+    document.querySelectorAll('.row[data-p]').forEach(function(r){
+      r.classList.toggle('now', r.dataset.p === currentName);
+    });
+  }
+  tick(); setInterval(tick, 1000);
+
+  /* hijri date — tabular (Kuwaiti) calendar, same algorithm family as the app */
+  (function(){
+    var MONTHS = ['Мухаррам','Сафар','Раби I','Раби II','Джумада I','Джумада II','Раджаб','Шаабан','Рамадан','Шавваль','Зуль-Каада','Зуль-Хиджа'];
+    var d = new Date(), y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+    var a = Math.floor((14 - m)/12), yy = y + 4800 - a, mm = m + 12*a - 3;
+    var jd = day + Math.floor((153*mm + 2)/5) + 365*yy + Math.floor(yy/4) - Math.floor(yy/100) + Math.floor(yy/400) - 32045;
+    var l = jd - 1948440 + 10632, n = Math.floor((l - 1)/10631);
+    l = l - 10631*n + 354;
+    var j = Math.floor((10985 - l)/5316)*Math.floor((50*l)/17719) + Math.floor(l/5670)*Math.floor((43*l)/15238);
+    l = l - Math.floor((30 - j)/15)*Math.floor((17719*j)/50) - Math.floor(j/16)*Math.floor((15238*j)/43) + 29;
+    var hm = Math.floor((24*l)/709), hd = l - Math.floor((709*hm)/24), hy = 30*n + j - 30;
+    document.getElementById('hijri').textContent = hd + ' ' + MONTHS[hm - 1] + ' ' + hy;
+  })();
+
+  /* tasbih counter */
+  var count = 0, tapper = document.getElementById('tapper');
+  function tap(){
+    count = count >= 33 ? 1 : count + 1;
+    document.getElementById('tCount').textContent = count;
+    document.getElementById('tProg').style.width = (count/33*100) + '%';
+    if (navigator.vibrate) navigator.vibrate(12);
+  }
+  tapper.addEventListener('click', tap);
+
+  /* qibla needle — settles on 245° (Bishkek → Mecca) */
+  var needle = document.getElementById('needle'), deg = document.getElementById('qDeg'), spinT;
+  function spinNeedle(){
+    clearTimeout(spinT);
+    var wobble = [200, 262, 238, 248, 245];
+    wobble.forEach(function(v, k){
+      setTimeout(function(){
+        needle.style.transform = 'rotate(' + v + 'deg)';
+        deg.textContent = v + '°';
+      }, k * 520);
+    });
+  }
+  needle.style.transform = 'rotate(245deg)';
+})();
+</script>
+</body>
+</html>
