@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
-import { BellRing, Bookmark, BookOpen, ChevronRight, Heart, Info, Languages, Share2, ShieldCheck, Sparkles, Star, type LucideIcon } from 'lucide-react-native';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { BellRing, Bookmark, BookOpen, ChevronRight, HandHeart, Heart, Info, Languages, Share2, ShieldCheck, Sparkles, Star, type LucideIcon } from 'lucide-react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrayerSettingsSheet } from '@/components/PrayerSettingsSheet';
@@ -24,6 +24,8 @@ type Sheet = 'duas' | 'surahs' | 'language' | 'prayer' | null;
 type Row = { label: string; subtitle?: string; icon: LucideIcon; iconColor?: string; onPress: () => void; badge?: string; value?: string };
 
 const PLAY_URL = 'https://play.google.com/store/apps/details?id=kg.emirkhan.ihsan';
+// Independent charity in Bishkek; the app only links to it and takes no part in the donations.
+const SADAQA_URL = 'https://barakat-fond-production.up.railway.app/lp';
 
 export default function ProfileScreen() {
   const { t, lang, setLang } = useLanguage();
@@ -56,6 +58,7 @@ export default function ProfileScreen() {
   const projectRows: Row[] = [
     { label: t.profileAbout, subtitle: t.profileAboutSub, icon: Info, onPress: () => router.push('/about') },
     { label: t.profilePrivacy, subtitle: t.profilePrivacySub, icon: ShieldCheck, onPress: () => router.push({ pathname: '/about', params: { section: 'privacy' } }) },
+    { label: t.profileSadaqa, subtitle: t.profileSadaqaSub, icon: HandHeart, iconColor: colors.heart, onPress: () => { void Linking.openURL(SADAQA_URL); } },
   ];
 
   return (
